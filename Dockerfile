@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Expose the port the app runs on (for the API)
-EXPOSE 8000
+EXPOSE 8080
 
 # The default command to run when the container starts.
 # We will run the API by default. We can override this for ingestion.
