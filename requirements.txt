@@ -1,4 +1,21 @@
+# For .pdf files
+PyMuPDF
+
+fastapi
+python-multipart
+
+
+# For .docx files
+python-docx
+
+
 langchain
-chromadb
+langchain_community
+langchain_experimental
+sentence-transformers
+langchain-huggingface
+langchain-google-genai
 langchain_groq
-langchain_chroma
+chromadb
+
+python-dotenv
