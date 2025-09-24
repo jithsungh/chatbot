@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "https://chatbot-egjh.onrender.com";
+const API_BASE_URL = "https://chatbot-273201344617.asia-south1.run.app";
 
 class ApiService {
   constructor() {
