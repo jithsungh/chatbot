@@ -1,11 +1,11 @@
 from ..ingestion import TextChuncking, TextCleaning, TextExtraction, VectorEmbedding
+from src.config import Config
 
 
-
-def upload_file(file, dept):
+async def upload_file(file, dept):
     try:
         # Save the uploaded file to a temporary location
-        temp_file_path = f"./documents/temp_{file.filename}"
+        temp_file_path = f"{Config.DOCUMETS_PATH}/{file.filename}"
         with open(temp_file_path, "wb") as f:
             f.write(file.file.read())
 
@@ -29,14 +29,43 @@ def upload_file(file, dept):
 
     except Exception as e:
         return {"error": str(e)}
+    
+async def upload_answer(question, answer, dept, pid=None):
+    try:
+        if not question.strip() or not answer.strip():
+            return {"error": "Question or answer is empty"}
+        
+        # Ensure dept is a string
+        if hasattr(dept, 'value'):
+            dept = dept.value
+        
+        # Wrap Q&A into a LangChain Document with department metadata
+        document = TextExtraction.process_qa_text(f"Q: {question}\nA: {answer}", dept, pid)
+        
+        if document is None:
+            return {"error": "Failed to create document from Q&A"}
 
-def upload_text(text, dept):
+        # Store in vector database and get document IDs
+        document_ids = VectorEmbedding.init_chromadb([document])
+        
+        if document_ids and len(document_ids) > 0:
+            return {
+                "message": "Q&A processed and embeddings stored successfully",
+                "document_id": document_ids[0]
+            }
+        else:
+            return {"error": "Failed to get document ID from vector database"}
+        
+    except Exception as e:
+        return {"error": str(e)}
+
+async def upload_text(text, dept, title):
     try:
         if not text.strip():
             return {"error": "Input text is empty"}
         
         # Wrap raw text into a LangChain Document with department metadata
-        documents = TextExtraction.process_raw_text(text, dept)
+        documents = TextExtraction.process_raw_text(text, dept, title)
 
         # Clean the input text
         cleaned_text = TextCleaning.docu_after_cleaning(documents)
@@ -52,3 +81,204 @@ def upload_text(text, dept):
     except Exception as e:
         return {"error": str(e)}
     
+
+async def purge_all_vectors():
+    """
+    Purge all vectors from the vector database.
+    Returns a dictionary with operation results.
+    """
+    try:
+        print("🔥 Starting vector database purge operation...")
+        
+        # Initialize result object
+        result = {
+            "success": False,
+            "message": "",
+            "deleted_count": 0,
+            "errors": []
+        }
+
+        # Import VectorEmbedding to access the vector database
+        from ..ingestion import VectorEmbedding
+        
+        try:
+            # Get ChromaDB client instance
+            client = VectorEmbedding.get_chroma_client()
+            if not client:
+                raise Exception("Vector database client not initialized")
+
+            # Get all collections to purge
+            collections = []
+            try:
+                # List all collections in ChromaDB
+                collections_list = client.list_collections()
+                collections = [collection.name for collection in collections_list]
+                print(f"Found {len(collections)} collections to purge: {collections}")
+            except Exception as list_error:
+                print(f"⚠️ Could not list collections: {list_error}")
+                # Use default collection names as fallback
+                collections = ['default', 'documents', 'knowledge', 'qa-pairs']
+
+            if not collections:
+                print("No collections found to purge")
+                result["success"] = True
+                result["message"] = "No collections found - vector database is already empty"
+                return result
+
+            total_deleted = 0
+            deletion_results = []
+
+            # Purge each collection
+            for collection_name in collections:
+                try:
+                    print(f"🗑️ Purging collection: {collection_name}")
+                    
+                    # Get the collection
+                    collection = client.get_collection(name=collection_name)
+                    
+                    # Get count before deletion
+                    try:
+                        collection_count = collection.count()
+                        print(f"Collection {collection_name} has {collection_count} documents")
+                    except:
+                        collection_count = 0
+
+                    # Delete the entire collection
+                    client.delete_collection(name=collection_name)
+                    print(f"✅ Deleted collection: {collection_name} ({collection_count} documents)")
+                    
+                    deletion_results.append({
+                        "collection": collection_name,
+                        "deleted": collection_count,
+                        "status": "success"
+                    })
+                    
+                    total_deleted += collection_count
+
+                except Exception as collection_error:
+                    error_msg = f"Failed to purge collection {collection_name}: {str(collection_error)}"
+                    print(f"❌ {error_msg}")
+                    
+                    deletion_results.append({
+                        "collection": collection_name,
+                        "deleted": 0,
+                        "status": "error",
+                        "error": str(collection_error)
+                    })
+                    
+                    result["errors"].append(error_msg)
+
+            # Additional cleanup - reset ChromaDB if possible
+            try:
+                # Reset the ChromaDB instance (if method exists)
+                if hasattr(client, 'reset'):
+                    client.reset()
+                    print("✅ ChromaDB reset completed")
+            except Exception as reset_error:
+                print(f"⚠️ Reset operation failed: {reset_error}")
+                result["errors"].append(f"Reset failed: {str(reset_error)}")
+
+            # Determine success status
+            successful_deletions = len([r for r in deletion_results if r["status"] == "success"])
+            has_errors = len(result["errors"]) > 0
+            
+            result["success"] = successful_deletions > 0 and not has_errors
+            result["deleted_count"] = total_deleted
+            result["collections_processed"] = len(deletion_results)
+            result["successful_deletions"] = successful_deletions
+            result["deletion_details"] = deletion_results
+
+            if result["success"]:
+                result["message"] = f"Successfully purged {successful_deletions} collections with {total_deleted} total vectors deleted"
+                print(f"🎉 {result['message']}")
+            elif successful_deletions > 0:
+                result["message"] = f"Partial purge completed: {successful_deletions}/{len(collections)} collections purged with errors"
+                print(f"⚠️ {result['message']}")
+            else:
+                result["message"] = "Vector database purge failed - no collections were successfully purged"
+                print(f"💥 {result['message']}")
+
+        except Exception as db_error:
+            error_msg = f"Database connection error: {str(db_error)}"
+            print(f"❌ {error_msg}")
+            result["errors"].append(error_msg)
+            result["message"] = f"Failed to connect to vector database: {str(db_error)}"
+
+        return result
+
+    except Exception as error:
+        print(f"💥 Critical error during vector database purge: {error}")
+        import traceback
+        traceback.print_exc()
+        
+        return {
+            "success": False,
+            "message": f"Vector database purge failed: {str(error)}",
+            "deleted_count": 0,
+            "errors": [str(error)],
+            "timestamp": None
+        }
+
+async def get_vector_count():
+    """
+    Get the total count of vectors in the vector database.
+    Returns a dictionary with count information.
+    """
+    try:
+        from ..ingestion import VectorEmbedding
+        
+        # Get ChromaDB client instance
+        client = VectorEmbedding.get_chroma_client()
+        if not client:
+            return {
+                "success": False,
+                "error": "Vector database client not initialized"
+            }
+
+        total_count = 0
+        collection_counts = []
+
+        try:
+            # Get all collections
+            collections_list = client.list_collections()
+            collections = [collection.name for collection in collections_list]
+        except Exception as list_error:
+            print(f"Could not list collections: {list_error}")
+            # Use default collection names as fallback
+            collections = ['default', 'documents', 'knowledge', 'qa-pairs']
+        
+        for collection_name in collections:
+            try:
+                # Get the collection
+                collection = client.get_collection(name=collection_name)
+                
+                # Get count from collection
+                count = collection.count()
+                
+                collection_counts.append({
+                    "collection": collection_name,
+                    "count": count
+                })
+                
+                total_count += count
+                
+            except Exception as coll_error:
+                print(f"Could not get count for collection {collection_name}: {coll_error}")
+                collection_counts.append({
+                    "collection": collection_name,
+                    "count": 0,
+                    "error": str(coll_error)
+                })
+
+        return {
+            "success": True,
+            "count": total_count,
+            "collection_details": collection_counts
+        }
+
+    except Exception as error:
+        return {
+            "success": False,
+            "error": str(error),
+            "count": 0
+        }

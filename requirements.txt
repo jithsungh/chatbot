@@ -1,14 +1,19 @@
 # For .pdf files
 PyMuPDF
-
-fastapi
 python-multipart
 
+# For FastAPI API
+fastapi
+uvicorn
 
 # For .docx files
 python-docx
 
+# Database
+SQLAlchemy
+psycopg2-binary    # needed as PostgreSQL driver for SQLAlchemy
 
+# LangChain ecosystem
 langchain
 langchain_community
 langchain_experimental
@@ -18,4 +23,9 @@ langchain-google-genai
 langchain_groq
 chromadb
 
+# Env management
 python-dotenv
+
+# authentication
+passlib[bcrypt] 
+python-jose[cryptography]

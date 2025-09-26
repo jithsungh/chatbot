@@ -16,9 +16,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Expose the port the app runs on (for the API)
-EXPOSE 8080
+EXPOSE 8000
 
 # The default command to run when the container starts.
 # We will run the API by default. We can override this for ingestion.
 # Use 0.0.0.0 to make it accessible from outside the container.
-CMD ["uvicorn", "src.app.index:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "src.app.index:app", "--host", "0.0.0.0", "--port", "8000"]
