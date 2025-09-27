@@ -72,6 +72,7 @@ class Pipeline:
             # 4) Generate prompt and get LLM response
             prompt = self.promptGenerator.generate_prompt(
                 query=query, 
+                dept=dept,
                 context_text=context, 
                 history_text=history, 
                 last_context=last_context, 

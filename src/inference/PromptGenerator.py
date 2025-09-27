@@ -4,13 +4,14 @@ class PromptGenerator:
     def __init__(self):
         pass
 
-    def generate_prompt(self, query: str, context_text: str, history_text: str, last_context, last_followup) -> str:
+    def generate_prompt(self, query: str, dept: str, context_text: str, history_text: str, last_context, last_followup) -> str:
 
         prompt = f"""
             You are a professional AI assistant for the organisation: {Config.ORGANIZATION}.
             Your sole responsibility is to help employees and users with information about {Config.ORGANIZATION}'s policies, procedures, and related queries.
 
             Always respond **only** with a valid JSON object that follows the schema below accrding to the provided context.
+            If the question is not related to {Config.ORGANIZATION}, politely inform the user that you can only assist with {Config.ORGANIZATION}-related queries.
 
             ---
             ### Schema
@@ -24,7 +25,7 @@ class PromptGenerator:
             ---
 
             ### Rules
-            these are some examples of how to respond:
+            --these are some examples of how to respond:
             1. **Always return JSON only**. No text outside JSON.
             2. Stay focused on {Config.ORGANIZATION}. If the user asks unrelated questions (jokes, chit-chat, etc.):
                 - "org_related" = false
@@ -65,6 +66,9 @@ class PromptGenerator:
 
             ### User Question
             {query}
+
+            ### Detected Department
+            {dept}
 
             Return only JSON:
             """
