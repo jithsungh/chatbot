@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,23 +14,48 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showConnectionStatus, setShowConnectionStatus] = useState(false);
-  const { admin, login } = useAuth();
+  const { isAuthenticated, login, loading: authLoading } = useAuth();
   const location = useLocation();
-
   const from = location.state?.from?.pathname || '/';
 
-  if (admin) {
+  // If user is already authenticated, redirect to intended page
+  if (isAuthenticated && !authLoading) {
+    console.log('Login: User already authenticated, redirecting to:', from);
     return <Navigate to={from} replace />;
+  }
+
+  // Show loading while auth is being determined
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gradient-subtle">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    const success = await login(email, password);
-    if (!success) {
-      setShowConnectionStatus(true);
+    
+    if (!email.trim() || !password.trim()) {
+      return;
     }
-    setIsLoading(false);
+    
+    setIsLoading(true);
+    
+    try {
+      const success = await login(email, password);
+      if (success) {
+        console.log('Login: Success, will redirect to:', from);
+        // Navigation will be handled by the Navigate component above
+      }
+    } catch (error) {
+      console.error('Login: Unexpected error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -43,69 +68,60 @@ const Login = () => {
         backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-accent/60 to-primary/90 backdrop-blur-sm"></div>
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-full mb-4 shadow-glow">
-            <Bot className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Chatbot Admin UI
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Sign in to manage your chatbot system
-          </p>
-        </div>
-
-        {showConnectionStatus && (
-          <div className="w-full max-w-md mb-4">
-            <ConnectionStatus onRetry={() => setShowConnectionStatus(false)} />
-          </div>
-        )}
-
-        <Card className="shadow-xl border-0 bg-card/50 backdrop-blur-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access the admin console
+      <div className="absolute inset-0 bg-black/50" />
+      <div className="relative z-10 w-full max-w-md">
+        <Card className="shadow-2xl border-0 bg-card/95 backdrop-blur-sm">
+          <CardHeader className="text-center pb-2">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 gradient-primary rounded-full shadow-lg">
+              <Bot className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Admin Console
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Sign in to manage your chatbot
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                   disabled={isLoading}
-                  className="transition-smooth focus:ring-primary/20"
+                  className="bg-background/50"
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
                   disabled={isLoading}
-                  className="transition-smooth focus:ring-primary/20"
+                  className="bg-background/50"
+                  required
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full"
-                variant="gradient-primary"
-                disabled={isLoading}
+                className="w-full gradient-primary hover:opacity-90 transition-opacity"
+                disabled={isLoading || !email.trim() || !password.trim()}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Signing in...
                   </>
                 ) : (
@@ -113,12 +129,25 @@ const Login = () => {
                 )}
               </Button>
             </form>
+            
+            <div className="text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowConnectionStatus(!showConnectionStatus)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {showConnectionStatus ? 'Hide' : 'Show'} Connection Status
+              </Button>
+            </div>
+            
+            {showConnectionStatus && (
+              <div className="mt-4">
+                <ConnectionStatus />
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        <div className="text-center mt-6 text-sm text-muted-foreground">
-          <p>Secure admin access for chatbot management</p>
-        </div>
       </div>
     </div>
   );

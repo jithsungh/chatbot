@@ -30,6 +30,11 @@ class AdminQuestion(Base):
     def retrieve_all(cls, session):
         """Return all admin questions"""
         return session.query(cls).all()
+    
+    @classmethod
+    def get_count(cls, session):
+        """ return total count of records"""
+        return session.query(cls).count()
 
     @classmethod
     def retrieve_all_processed(cls, session):

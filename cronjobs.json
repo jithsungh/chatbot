@@ -1,0 +1,26 @@
+[
+    {   
+        "title": "Summarize Pending User Questions", 
+        "description": "Summarize the pending user questions for every 24h",
+        "time period": "24h",
+        "endpoint" : ""
+    },
+    {
+        "title": "healthcheck",
+        "description": "A simple healthcheck endpoint to verify the service is running",
+        "time period": "10s",
+        "endpoint": ""
+    },
+    {
+        "title": "purge user history",
+        "description": "Purge user history older than 48 hours",
+        "time period": "24h",
+        "endpoint": ""
+    },
+    {
+        "title": "Average response times",
+        "description": "to store average response times to the databse",
+        "time period": "1m",
+        "endpoint": ""
+    }    
+]

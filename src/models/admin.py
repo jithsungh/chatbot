@@ -33,6 +33,17 @@ class Admin(Base):
         return new_admin
     
     @classmethod
+    def get_count(cls, session):
+        """ return total count of records"""
+        return session.query(cls).count()
+    
+    @classmethod
+    def get_name_by_id(cls, session, admin_id):
+        """Get admin name by ID"""
+        admin = session.query(cls).filter_by(id=admin_id).first()
+        return admin.name if admin else None
+    
+    @classmethod
     def get_by_id(cls, session, admin_id):
         """Get admin by ID"""
         return session.query(cls).filter_by(id=admin_id).first()

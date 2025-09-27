@@ -14,22 +14,22 @@ import {
 } from 'lucide-react';
 
 interface StatsData {
-  totalQueries: number;
   answeredQueries: number;
   pendingQueries: number;
-  uploadedFiles: number;
-  totalUsers: number;
   avgResponseTime: string;
+  uploadedFiles: number;
+  uploadedTexts: number;
+  totalUsers: number;
 }
 
 const Dashboard = () => {
   const [stats, setStats] = useState<StatsData>({
-    totalQueries: 0,
     answeredQueries: 0,
     pendingQueries: 0,
-    uploadedFiles: 0,
-    totalUsers: 0,
     avgResponseTime: '0.5s',
+    uploadedFiles: 0,
+    uploadedTexts: 0,
+    totalUsers: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -57,81 +57,88 @@ const Dashboard = () => {
         ...safeAdminQueries.filter(q => q.status === 'pending')
       ].length;
 
-      setStats({
-        totalQueries,
-        answeredQueries: totalQueries - pendingQueries,
-        pendingQueries,
-        uploadedFiles: safeFiles.length,
-        totalUsers: new Set([
-          ...safeUserQueries.map(q => q.user_id).filter(Boolean),
-          ...safeAdminQueries.map(q => q.admin_id).filter(Boolean)
-        ]).size,
-        avgResponseTime: '0.8s',
-      });
+      // setStats({
+      //   answeredQueries: totalQueries - pendingQueries,
+      //   pendingQueries,
+      //   uploadedFiles: safeFiles.length,
+      //   totalUsers: new Set([
+      //     ...safeUserQueries.map(q => q.user_id).filter(Boolean),
+      //     ...safeAdminQueries.map(q => q.admin_id).filter(Boolean)
+      //   ]).size,
+      //   avgResponseTime: '0.8s',
+      // });
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
       // Set some demo data for better UX
       setStats({
-        totalQueries: 156,
         answeredQueries: 147,
         pendingQueries: 9,
-        uploadedFiles: 23,
-        totalUsers: 47,
         avgResponseTime: '0.8s',
+        uploadedFiles: 23,
+        uploadedTexts: 13,
+        totalUsers: 47,
       });
     } finally {
       setLoading(false);
+      setStats({
+        answeredQueries: 147,
+        pendingQueries: 9,
+        avgResponseTime: "0.8s",
+        uploadedFiles: 23,
+        uploadedTexts: 13,
+        totalUsers: 47,
+      });
     }
   };
 
   const statItems = [
     {
-      title: 'Total Queries',
-      value: stats.totalQueries,
-      description: 'All time queries processed',
-      icon: MessageSquare,
-      gradient: 'from-blue-500 to-blue-600',
-      bgGradient: 'from-blue-50 to-blue-100',
-    },
-    {
-      title: 'Answered Queries',
+      title: "Answered Queries",
       value: stats.answeredQueries,
-      description: 'Successfully resolved',
+      description: "Successfully resolved",
       icon: CheckCircle,
-      gradient: 'from-green-500 to-green-600',
-      bgGradient: 'from-green-50 to-green-100',
+      gradient: "from-green-500 to-green-600",
+      bgGradient: "from-green-50 to-green-100",
     },
     {
-      title: 'Pending Queries',
+      title: "Pending Queries",
       value: stats.pendingQueries,
-      description: 'Awaiting response',
+      description: "Awaiting response",
       icon: AlertCircle,
-      gradient: 'from-orange-500 to-orange-600',
-      bgGradient: 'from-orange-50 to-orange-100',
+      gradient: "from-orange-500 to-orange-600",
+      bgGradient: "from-orange-50 to-orange-100",
     },
     {
-      title: 'Uploaded Files',
-      value: stats.uploadedFiles,
-      description: 'Knowledge base files',
-      icon: FileText,
-      gradient: 'from-purple-500 to-purple-600',
-      bgGradient: 'from-purple-50 to-purple-100',
-    },
-    {
-      title: 'Active Users',
-      value: stats.totalUsers,
-      description: 'Unique users served',
-      icon: Users,
-      gradient: 'from-indigo-500 to-indigo-600',
-      bgGradient: 'from-indigo-50 to-indigo-100',
-    },
-    {
-      title: 'Avg Response Time',
+      title: "Avg Response Time",
       value: stats.avgResponseTime,
-      description: 'System performance',
+      description: "System performance",
       icon: Clock,
-      gradient: 'from-teal-500 to-teal-600',
-      bgGradient: 'from-teal-50 to-teal-100',
+      gradient: "from-teal-500 to-teal-600",
+      bgGradient: "from-teal-50 to-teal-100",
+    },
+    {
+      title: "Uploaded Files",
+      value: stats.uploadedFiles,
+      description: "Knowledge base files",
+      icon: FileText,
+      gradient: "from-purple-500 to-purple-600",
+      bgGradient: "from-purple-50 to-purple-100",
+    },
+    {
+      title: "Uploaded Texts",
+      value: stats.uploadedTexts,
+      description: "Text Knowledge Entries",
+      icon: MessageSquare,
+      gradient: "from-blue-500 to-blue-600",
+      bgGradient: "from-blue-50 to-blue-100",
+    },
+    {
+      title: "Active Users",
+      value: stats.totalUsers,
+      description: "Unique users served",
+      icon: Users,
+      gradient: "from-indigo-500 to-indigo-600",
+      bgGradient: "from-indigo-50 to-indigo-100",
     },
   ];
 

@@ -28,6 +28,10 @@ class TextKnowledge(Base):
         return new_record
     
     @classmethod
+    def get_count(cls, session):
+        return session.query(cls).count()
+    
+    @classmethod
     def get_by_id(cls, session, record_id):
         return session.query(cls).filter_by(id=record_id).first()
     

@@ -53,6 +53,12 @@ class HistoryManager:
             self._history.pop(uid, None)
             self._last_context.pop(uid, None)
             self._last_followup.pop(uid, None)
+    
+    def clear_history(self, user_id: str) -> None:
+        """Clear conversation history for a specific user."""
+        self._history.pop(user_id, None)
+        self._last_context.pop(user_id, None)
+        self._last_followup.pop(user_id, None)
 
 
 

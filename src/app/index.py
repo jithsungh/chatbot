@@ -6,7 +6,7 @@ import asyncio
 from sqlalchemy import text
 
 from .routes import AdminRoutes
-from .routes import QueryRoutes
+from .routes import UserRoutes
 from .routes import AdminAuthRoutes
 from ..config import Config
 
@@ -103,6 +103,6 @@ async def health_check():
             "error": str(e)
         }
 
-app.include_router(QueryRoutes.router, prefix="/api/user", tags=["query"])
+app.include_router(UserRoutes.router, prefix="/api/user", tags=["query"])
 app.include_router(AdminRoutes.router, prefix="/api/admin", tags=["admin"])
 app.include_router(AdminAuthRoutes.router, prefix="/api/auth", tags=["auth"])
