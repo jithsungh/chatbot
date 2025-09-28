@@ -8,7 +8,9 @@ from sqlalchemy import text
 from .routes import AdminRoutes
 from .routes import UserRoutes
 from .routes import AdminAuthRoutes
-from ..config import Config
+from .routes import ReadOnlyAdminRoutes
+from .routes import SuperAdminRoutes
+from src.config import Config
 
 
 async def startup_health_check():
@@ -105,4 +107,6 @@ async def health_check():
 
 app.include_router(UserRoutes.router, prefix="/api/user", tags=["query"])
 app.include_router(AdminRoutes.router, prefix="/api/admin", tags=["admin"])
+app.include_router(ReadOnlyAdminRoutes.router, prefix="/api/read", tags=["readonlyadmin"])
+app.include_router(SuperAdminRoutes.router, prefix="/api/superadmin", tags=["superadmin"])
 app.include_router(AdminAuthRoutes.router, prefix="/api/auth", tags=["auth"])

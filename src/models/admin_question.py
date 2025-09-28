@@ -32,6 +32,16 @@ class AdminQuestion(Base):
         return session.query(cls).all()
     
     @classmethod
+    def get_pending_count(cls, session):
+        """ return total count of pending user questions"""
+        return session.query(cls).filter(cls.status == AdminQuestionStatus.pending).count()
+    
+    @classmethod
+    def get_processed_count(cls, session):
+        """ return total count of processed user questions"""
+        return session.query(cls).filter(cls.status == AdminQuestionStatus.processed).count()
+    
+    @classmethod
     def get_count(cls, session):
         """ return total count of records"""
         return session.query(cls).count()

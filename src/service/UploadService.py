@@ -2,15 +2,15 @@ from ..ingestion import TextChuncking, TextCleaning, TextExtraction, VectorEmbed
 from src.config import Config
 
 
-async def upload_file(file, dept):
+async def upload_file(file, dept, file_uuid):
     try:
         # Save the uploaded file to a temporary location
-        temp_file_path = f"{Config.DOCUMETS_PATH}/{file.filename}"
-        with open(temp_file_path, "wb") as f:
+        file_path = f"{Config.DOCUMENTS_PATH}/{file_uuid}_{file.filename}"
+        with open(file_path, "wb") as f:
             f.write(file.file.read())
 
         # Extract text based on file type
-        documents = TextExtraction.extract_text(temp_file_path, dept)
+        documents = TextExtraction.extract_text(file_path, dept)
 
         if documents is None:
             return {"error": "Failed to extract text from the document"}
@@ -24,9 +24,8 @@ async def upload_file(file, dept):
         # Generate and store vector embeddings
         VectorEmbedding.init_chromadb(chunked_documents)
 
-        return {"message": "File processed and embeddings stored successfully"}
+        return file_path
     
-
     except Exception as e:
         return {"error": str(e)}
     

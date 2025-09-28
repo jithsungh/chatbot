@@ -49,6 +49,16 @@ class UserQuestion(Base):
         return session.query(cls).filter(cls.status == UserQuestionStatus.processed).all()
 
     @classmethod
+    def get_pending_count(cls, session):
+        """ return total count of pending user questions"""
+        return session.query(cls).filter(cls.status == UserQuestionStatus.pending).count()
+    
+    @classmethod
+    def get_processed_count(cls, session):
+        """ return total count of processed user questions"""
+        return session.query(cls).filter(cls.status == UserQuestionStatus.processed).count()
+
+    @classmethod
     def retrieve_all_pending(cls, session):
         """Return all pending user questions"""
         return session.query(cls).filter(cls.status == UserQuestionStatus.pending).all()

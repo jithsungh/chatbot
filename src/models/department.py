@@ -11,6 +11,7 @@ import enum
 import uuid
 from sqlalchemy import Column, String, Integer, Text, Enum, TIMESTAMP, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from .base import Base
 from .user_question import DeptType
@@ -22,6 +23,9 @@ class Department(Base):
     name = Column(Enum(DeptType), nullable=False, unique=True)
     description = Column(Text, nullable=False)
     createdat = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    # Relationship to keywords
+    keywords = relationship("DeptKeyword", back_populates="department")
 
     @classmethod
     def create(cls, session, name: DeptType, description: str):

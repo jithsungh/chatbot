@@ -5,6 +5,8 @@ from sqlalchemy.orm import sessionmaker
 import threading
 from typing import Optional
 
+from src.inference.HistoryManager import HistoryManager
+
 load_dotenv()
 
 class ModelManager:
@@ -70,6 +72,7 @@ class Config:
 
     # JWT Configuration
     SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key-change-in-production")
+    SECRET_PASSWORD = os.getenv("SECRET_PASSWORD", "bhamakhanda")
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -88,6 +91,9 @@ class Config:
     # Model configuration
     DEFAULT_MODEL_NAME = "all-MiniLM-L6-v2"
     DEPUTY_MODEL_NAME = "all-mpnet-base-v2"
+
+    # HISTORY MANAGER
+    HISTORY_MANAGER = HistoryManager(max_turns=25)
 
     @classmethod
     def get_session(cls):

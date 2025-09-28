@@ -46,5 +46,6 @@ class DeptKeyword(Base):
     def get_department(self, session):
         return session.query(Department).filter_by(id=self.dept_id).first()
     
+    @classmethod
     def get_count(cls, session):
         return session.query(cls).count()

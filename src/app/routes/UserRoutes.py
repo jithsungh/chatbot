@@ -1,13 +1,23 @@
-from fastapi import APIRouter,HTTPException,Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from src.inference.Pipeline import Pipeline
-from src.inference.HistoryManager import HistoryManager
+from src.inference.HybridRouter import HybridDepartmentRouter
+from src.config import Config
 
 router= APIRouter()
 
 pipeline = Pipeline()
-historyManager = HistoryManager()
+historyManager = Config.HISTORY_MANAGER()
+department_router = HybridDepartmentRouter()
 
-@router.post("/query/")
+def get_auth_dependencies():
+    from src.dependencies.auth import validate_admin_token, get_admin_id_from_token
+    return validate_admin_token, get_admin_id_from_token
+
+# Get auth dependencies once
+validate_admin_token, get_admin_id_from_token = get_auth_dependencies()
+
+
+@router.post("/query")
 async def handle_query(
     query: str = Body(..., embed=True, example="What is Techmojo?"),
     userid: str = Body(..., embed=True, example="user123")
@@ -24,6 +34,25 @@ async def handle_query(
     try:
         response = pipeline.process_user_query(query,userid)
         return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/department")
+async def get_department(
+    query: str = Body(..., embed=True, example="What is Techmojo?"),
+    admin_id: str = Depends(get_admin_id_from_token),
+):
+    """
+    Determine the department for a given query.
+    - query: The user's question or input
+    """
+    if not query:
+        raise HTTPException(status_code=400, detail="'query' is required")
+
+    try:
+    
+        department = department_router.route_query(query)
+        return {"department": department}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     

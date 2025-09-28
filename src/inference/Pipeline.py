@@ -23,10 +23,10 @@ class Pipeline:
             # Lazy imports to avoid circular dependencies
             from src.inference.HybridRouter import HybridDepartmentRouter
             from src.inference.ContextRetriever import SimpleContextRetriever
-            from src.inference.HistoryManager import HistoryManager
             from src.inference.PromptGenerator import PromptGenerator
             from src.utils.LLMClientGemma import LLMClientGemma as LLMClient
             from src.utils.ResponseFormatter import ResponseFormatter
+            from src.config import Config
             
             self.router = HybridDepartmentRouter()
             print("✅ HybridDepartmentRouter initialized")
@@ -34,7 +34,7 @@ class Pipeline:
             self.retriever = SimpleContextRetriever()
             print("✅ SimpleContextRetriever initialized")
             
-            self.history_manager = HistoryManager()
+            self.history_manager = Config.HISTORY_MANAGER()
             print("✅ HistoryManager initialized")
             
             self.promptGenerator = PromptGenerator()
