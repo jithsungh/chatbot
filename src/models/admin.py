@@ -1,9 +1,15 @@
 import uuid
-from sqlalchemy import Column, Boolean, TIMESTAMP, Text
+import enum
+from sqlalchemy import Column, Boolean, TIMESTAMP, Text, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
 from .base import Base
+
+class AdminRole(enum.Enum):
+    superadmin = "super_admin"
+    admin = "admin"
+    read_only = "read_only"
 
 class Admin(Base):
     __tablename__ = "admins"
@@ -14,6 +20,7 @@ class Admin(Base):
     password = Column(Text, nullable=False)
     enabled = Column(Boolean, default=False)
     verified = Column(Boolean, default=False)
+    role = Column(Enum(AdminRole), default=AdminRole.admin)
     verification_token = Column(Text, nullable=True)
     last_login = Column(TIMESTAMP(timezone=True), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())

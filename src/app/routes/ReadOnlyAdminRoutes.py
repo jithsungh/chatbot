@@ -403,7 +403,7 @@ async def get_dept_keywords(
     """
     Retrieve department keywords grouped by department name.
     - dept_name: Optional filter by department name (HR, IT, Security)
-    Returns: {"HR": ["keyword1", "keyword2"], "IT": ["keyword3"], ...}
+    Returns: {"HR": [{"id": id, "keyword": "kw1"}, ...], "IT": [...], ...}
     """
     session = Config.get_session()
 
@@ -427,7 +427,10 @@ async def get_dept_keywords(
             dept_name_key = department.name.value
             if dept_name_key not in grouped_keywords:
                 grouped_keywords[dept_name_key] = []
-            grouped_keywords[dept_name_key].append(keyword.keyword)
+            grouped_keywords[dept_name_key].append({
+                "id": str(keyword.id),
+                "keyword": keyword.keyword
+            })
         
         return grouped_keywords
         

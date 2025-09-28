@@ -3,34 +3,31 @@ from uuid import uuid4,UUID
 from typing import Optional, List
 import asyncio
 import os
+from src.service import UploadService
 
-# Lazy imports - only import when needed
-def get_upload_service():
-    from src.service import UploadService
-    return UploadService
+from src.config import Config
 
-def get_config():
-    from src.config import Config
-    return Config
+from src.admin.filter import QuestionFilter
 
-def get_question_filter():
-    from src.admin.filter import QuestionFilter
-    return QuestionFilter
+from src.dependencies.auth import validate_admin_token, get_admin_id_from_token
 
-def get_auth_dependencies():
-    from src.dependencies.auth import validate_admin_token, get_admin_id_from_token
-    return validate_admin_token, get_admin_id_from_token
 
-def get_models():
-    from src.models import UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge
-    from src.models.user_question import DeptType
-    from src.models.admin_question import AdminQuestionStatus
-    return UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, DeptType, AdminQuestionStatus
+from src.models import UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, Department, DeptKeyword
+from src.models.user_question import DeptType
+from src.models.admin_question import AdminQuestionStatus
 
-router = APIRouter()
+router = APIRouter() 
 
-# Get auth dependencies once
-validate_admin_token, get_admin_id_from_token = get_auth_dependencies()
+# Helper function to validate department safely
+def validate_department(dept: str) -> DeptType:
+    """Validate department string and return DeptType enum"""
+    try:
+        return DeptType(dept)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid department '{dept}'. Must be one of: {', '.join([d.value for d in DeptType])}"
+        )
 
 
 @router.post("/upload/files/{dept}")
@@ -44,10 +41,6 @@ async def upload_files(
     Unified endpoint to upload single or multiple files.
     Each file is processed via UploadService and recorded in FileKnowledge.
     """
-    Config = get_config()
-    UploadService = get_upload_service()
-    # Suppose you only need FileKnowledge
-    _, _, _, FileKnowledge, _ , _= get_models()
 
 
     # Validate department
@@ -73,7 +66,7 @@ async def upload_files(
                 raise HTTPException(status_code=413, detail=f"File '{file.filename}' too large")
             await file.seek(0)  # Reset file pointer
 
-            file_path = await UploadService.upload_file(file, dept, file_uuid)
+            file_path = await UploadService.upload_file(file, dept, str(file_uuid))
             if isinstance(file_path, dict) and "error" in file_path:
                 raise Exception(file_path["error"])
 
@@ -122,9 +115,6 @@ async def upload_text(
     admin_id: str = Depends(get_admin_id_from_token)
 ):
     """Upload raw text to be processed and stored in the vector database."""
-    Config = get_config()
-    UploadService = get_upload_service()
-    UserQuestion, AdminQuestion, TextKnowledge, DeptType, AdminQuestionStatus = get_models()
     
     session = Config.get_session()
     
@@ -170,7 +160,7 @@ async def upload_text(
         )
         
         # Process through upload service for vector database storage - ADD AWAIT HERE
-        result = await UploadService.upload_text(text, dept, title, text_knowledge.id)
+        result = await UploadService.upload_text(text, dept, title, str(text_knowledge.id))
         
         # Check if vector processing was successful
         if "error" in result:
@@ -207,8 +197,6 @@ async def summarize_pending_questions(
     """
     Summarize pending admin questions using the QuestionFilter service.
     """
-    Config = get_config()  # Add this line
-    QuestionFilter = get_question_filter()  # Add this line
     session = Config.get_session()
     try:
         # Initialize filter instance
@@ -261,9 +249,6 @@ async def answer_admin_question(
     - question_id: The ID of the admin question to be answered
     - answer: The answer text
     """
-    UploadService = get_upload_service()  # Add this line
-    UserQuestion, AdminQuestion, TextKnowledge, DeptType, AdminQuestionStatus = get_models()  # Add this line
-    Config = get_config()  # Add this line
     session = Config.get_session()
     try:
         # Validate inputs
@@ -344,18 +329,291 @@ async def answer_admin_question(
 
 
 # delete file by id
+@router.delete("/files/{file_id}")
+async def delete_file(
+    file_id: str,
+    admin_id: str = Depends(get_admin_id_from_token)
+):
+    session = Config.get_session()
+    try:
+        # Validate UUID
+        try:
+            f_id = UUID(file_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid file_id format")
+        
+        # Fetch record
+        file_record = session.query(FileKnowledge).filter(FileKnowledge.id == f_id).first()
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File knowledge record not found")
+        
+        # Delete physical file
+        if os.path.exists(file_record.file_path):
+            try:
+                os.remove(file_record.file_path)
+            except Exception as e:
+                print(f"⚠️ Failed to delete file: {e}")
 
-# delete text knowledge by id
+        # Delete vectors from vectorDB
+        result = UploadService.delete_vectors_by_knowledge_id(str(file_record.id))
+        
+        # Delete DB record
+        session.delete(file_record)
+        session.commit()
+        
+        return {
+            "success": True,
+            "message": "File knowledge record and associated file deleted",
+            "file_id": file_id,
+            "deleted_by": admin_id
+        }
+        
+    except HTTPException:
+        session.rollback()
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        session.close()
 
-# ----optional---- last-> edit text functionality
 
-# delete keyword
+@router.put("/text/{text_id}")
+async def edit_text_knowledge(
+    text_id: str,
+    title: Optional[str] = Body(None, embed=True),
+    text: Optional[str] = Body(None, embed=True),
+    dept: Optional[str] = Body(None, embed=True),
+    admin_id: str = Depends(get_admin_id_from_token)
+):
+    """
+    Edit an existing text knowledge record:
+      - Update title, text, and/or department in DB
+      - Delete old vector embeddings and re-upload if text changed
+      - If only title changed, just update DB
+      - If only dept changed, update DB (and optionally vector metadata)
+    """
+    session = Config.get_session()
+    
+    try:
+        # Validate UUID
+        try:
+            t_id = UUID(text_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid text_id format")
+        
+        # Fetch record
+        text_record = session.query(TextKnowledge).filter(TextKnowledge.id == t_id).first()
+        if not text_record:
+            raise HTTPException(status_code=404, detail="Text knowledge record not found")
+        
+        # Track what changed
+        updated_fields = {}
+        text_changed = False
+        
+        if title is not None and title != text_record.title:
+            updated_fields["title"] = title
+            text_record.title = title
+        
+        if text is not None and text != text_record.text:
+            updated_fields["text"] = text
+            text_record.text = text
+            text_changed = True
+        
+        if dept is not None:
+            # Validate department
+            try:
+                from src.models.user_question import DeptType
+                dept_enum = DeptType(dept)
+                if dept_enum != text_record.dept:
+                    updated_fields["dept"] = dept_enum
+                    text_record.dept = dept_enum
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid department specified")
+        
+        if not updated_fields:
+            return {"message": "No changes detected"}
+        
+        session.commit()  # Save updated DB record
+        
+        vec_result = None
+        vec_upload_result = None
+        
+        if text_changed:
+            # Delete old vectors
+            vec_result = UploadService.delete_vectors_by_knowledge_id(str(text_record.id))
+            # Re-upload new text vectors
+            vec_upload_result = await UploadService.upload_text(
+                text=text_record.text,
+                dept=text_record.dept,
+                title=text_record.title,
+                text_uuid=str(text_record.id)
+            )
+        
+        return {
+            "success": True,
+            "message": "Text knowledge updated successfully",
+            "updated_fields": list(updated_fields.keys()),
+            "vector_deleted": vec_result if text_changed else None,
+            "vector_uploaded": vec_upload_result if text_changed else None
+        }
+    
+    except HTTPException:
+        session.rollback()
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        session.close()
 
-# add keywords
+# -----------------------
+# Add keywords
+# -----------------------
+@router.post("/departments/keywords")
+async def add_keywords(
+    dept_name: str = Body(..., embed=True),
+    keywords: List[str] = Body(..., embed=True),
+    admin_id: str = Depends(get_admin_id_from_token)
+):
+    """
+    Add one or multiple keywords to a department.
+    """
+    session = Config.get_session()
+    try:
+        dept_enum = validate_department(dept_name)
+        department = session.query(Department).filter(Department.name == dept_enum).first()
+        if not department:
+            raise HTTPException(status_code=404, detail="Department not found")
 
-# edit keyword
+        added_keywords = []
+        for kw in keywords:
+            kw = kw.strip()
+            if not kw:
+                continue
+            keyword_record = DeptKeyword.create(session=session, dept_id=department.id, keyword=kw)
+            added_keywords.append({"id": str(keyword_record.id), "keyword": kw})
+
+        session.commit()
+        return {
+            "success": True,
+            "department": dept_name,
+            "added_keywords": added_keywords,
+            "added_by": admin_id
+        }
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+
+# -----------------------
+# Edit keyword
+# -----------------------
+@router.put("/departments/keywords/{keyword_id}")
+async def edit_keyword(
+    keyword_id: str,
+    new_keyword: str = Body(..., embed=True),
+    admin_id: str = Depends(get_admin_id_from_token)
+):
+    """
+    Update the value of an existing keyword.
+    """
+    session = Config.get_session()
+    try:
+        try:
+            kw_id = UUID(keyword_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid keyword_id format")
+
+        keyword_record = session.query(DeptKeyword).filter(DeptKeyword.id == kw_id).first()
+        if not keyword_record:
+            raise HTTPException(status_code=404, detail="Keyword not found")
+
+        keyword_record.keyword = new_keyword.strip()
+        session.commit()
+
+        return {
+            "success": True,
+            "keyword_id": keyword_id,
+            "new_keyword": keyword_record.keyword,
+            "updated_by": admin_id
+        }
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+
+# -----------------------
+# Delete keyword
+# -----------------------
+@router.delete("/departments/keywords/{keyword_id}")
+async def delete_keyword(
+    keyword_id: str,
+    admin_id: str = Depends(get_admin_id_from_token)
+):
+    """
+    Delete a department keyword by its ID.
+    """
+    session = Config.get_session()
+    try:
+        try:
+            kw_id = UUID(keyword_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid keyword_id format")
+
+        keyword_record = session.query(DeptKeyword).filter(DeptKeyword.id == kw_id).first()
+        if not keyword_record:
+            raise HTTPException(status_code=404, detail="Keyword not found")
+
+        session.delete(keyword_record)
+        session.commit()
+
+        return {
+            "success": True,
+            "keyword_id": keyword_id,
+            "deleted_by": admin_id
+        }
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
 
 # edit description
+@router.put("/departments/{dept_name}")
+async def edit_department_description(
+    dept_name: str,
+    new_description: str = Body(..., embed=True),
+    admin_id: str = Depends(get_admin_id_from_token)
+):
+    """
+    Update the description of a department.
+    """
+    session = Config.get_session()
+    try:
+        dept_enum = validate_department(dept_name)
+        department = session.query(Department).filter(Department.name == dept_enum).first()
+        if not department:
+            raise HTTPException(status_code=404, detail="Department not found")
+
+        department.description = new_description.strip()
+        session.commit()
+
+        return {
+            "success": True,
+            "department": dept_name,
+            "new_description": department.description,
+            "updated_by": admin_id
+        }
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
 
 # upsert vector db with id
 
@@ -368,7 +626,6 @@ async def purge_user_history(
     Purge user conversation history older than the specified number of hours.
     Default is 24 hours, max is 168 hours (7 days).
     """
-    Config = get_config()
     historyManager = Config.HISTORY_MANAGER
     try:
         deleted_count = historyManager.purge_old_context(older_than_hours=time_hours)

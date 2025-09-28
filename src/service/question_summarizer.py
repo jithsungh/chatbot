@@ -37,25 +37,26 @@ class QuestionSummarizer:
 
         # Prompt template
         prompt = f"""
-You are an AI assistant at {Config.ORGANIZATION}, tasked with helping admins answer user questions efficiently.
+            You are an AI assistant at {Config.ORGANIZATION}, tasked with helping admins answer user questions efficiently.
 
-The following is a cluster of similar user questions that need to be merged into a single clear and concise representative question.
+            The following is a cluster of similar user questions that need to be merged into a single clear and concise representative question.
 
-User Questions Cluster:
-{queries_text}
+            User Questions Cluster:
+            {queries_text}
 
-Instructions:
-1. Merge these questions into a single, comprehensive, and easy-to-understand question.
-2. Remove duplicates, redundant phrases, and reword for clarity.
-3. Keep the meaning intact and preserve the intent of the users.
-4. Return ONLY a valid JSON object with the following format:
+            Instructions:
+            1. Merge these questions into a single, comprehensive, and easy-to-understand question.
+            2. Remove duplicates, redundant phrases, and reword for clarity.
+            3. Keep the meaning intact and preserve the intent of the users.
+            4. Return ONLY a valid JSON object with the following format:
 
-{{
-    "representative_question": "<your merged question here>",
-    "original_questions": [{', '.join([f'"{q}"' for q in queries])}]
-}}
+            {{
+                "representative_question": "<your merged question here>",
+                "acceptance_criteria": "Acceptance criteria or suggestion for the answer, what to include or focus on",
+                "original_questions": [{', '.join([f'"{q}"' for q in queries])}]
+            }}
 
-Do not add any explanations or extra text. Return only JSON.
+            Do not add any explanations or extra text. Return only JSON.
             """
 
         return prompt.strip()

@@ -18,6 +18,7 @@ class AdminQuestion(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     adminid = Column(UUID(as_uuid=True), nullable=True)
     question = Column(Text, nullable=False)
+    notes = Column(Text, nullable=True)
     answer = Column(Text, nullable=True)
     status = Column(Enum(AdminQuestionStatus), default=AdminQuestionStatus.pending)
     dept = Column(Enum(DeptType), nullable=True)

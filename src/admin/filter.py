@@ -116,6 +116,7 @@ class QuestionFilter:
                             # Try to parse the JSON response from LLM
                             parsed = json.loads(summary_json)
                             representative_question = parsed.get("representative_question", "")
+                            acceptance_criteria = parsed.get("acceptance_criteria", "")
                             
                             if not representative_question:
                                 print(f"⚠️ Empty representative question for dept {dept}, skipping")
@@ -138,6 +139,7 @@ class QuestionFilter:
                                 id=uuid.uuid4(),  # Explicitly set ID
                                 adminid=default_admin_id,
                                 question=representative_question,
+                                notes=acceptance_criteria,
                                 answer=None,  # Explicitly set answer as None
                                 status=AdminQuestionStatus.pending,
                                 dept=dept_enum,

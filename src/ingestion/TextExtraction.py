@@ -1,9 +1,9 @@
 import fitz
 from docx import Document 
 from langchain.schema import Document as docu
-from uuid import UUID
+
 # Extracts text from .txt files
-def get_text_from_txt(file_path, dept, file_uuid: UUID | None = None):
+def get_text_from_txt(file_path, dept, file_uuid: str | None = None):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -22,7 +22,7 @@ def get_text_from_txt(file_path, dept, file_uuid: UUID | None = None):
 
 
 # Extracts text from .pdf files
-def get_text_from_pdf(file_path, dept, file_uuid: UUID | None = None):
+def get_text_from_pdf(file_path, dept, file_uuid: str | None = None):
     try:
         doc = fitz.open(file_path)
         documents = []
@@ -42,7 +42,7 @@ def get_text_from_pdf(file_path, dept, file_uuid: UUID | None = None):
 
 
 # Extracts text from .docx files
-def get_text_from_docx(file_path, dept, file_uuid: UUID | None = None):
+def get_text_from_docx(file_path, dept, file_uuid: str | None = None):
     try:
         doc = Document(file_path)
         full_text = [para.text for para in doc.paragraphs if para.text.strip()]
@@ -62,7 +62,7 @@ def get_text_from_docx(file_path, dept, file_uuid: UUID | None = None):
         return None
 
 # -------------------- RAW TEXT --------------------
-def process_raw_text(raw_text: str, dept: str, title: str, text_uuid: UUID | None = None):
+def process_raw_text(raw_text: str, dept: str, title: str, text_uuid: str | None = None):
     """
     Wrap raw text into a LangChain Document with department metadata.
     """
@@ -88,7 +88,7 @@ def process_qa_text(qa_text: str, dept: str, pid):
         if qa_text and qa_text.strip():
             return docu(
                 page_content=qa_text.strip(),
-                metadata={"source": "admin", "page": 1, "department": dept, "type":"text", "postgres_id": pid}
+                metadata={"source": "admin", "page": 1, "department": dept, "type":"answer", "knowledge_id": pid}
             )
         return None  # Return None if no valid text
     except Exception as e:
@@ -96,7 +96,7 @@ def process_qa_text(qa_text: str, dept: str, pid):
         return None
 
 # -------------------- Dispatcher --------------------
-def extract_text(file_path: str | None = None, dept: str = "General Inquiry", file_uuid: UUID | None = None):
+def extract_text(file_path: str | None = None, dept: str = "General Inquiry", file_uuid: str | None = None):
     """
     Unified entry point:
       - Pass file_path to extract from .txt / .pdf / .docx

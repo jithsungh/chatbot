@@ -1,13 +1,31 @@
 from ..ingestion import TextChuncking, TextCleaning, TextExtraction, VectorEmbedding
 from src.config import Config
 
+def get_collection():
+    """Get the shared ChromaDB collection (lazy loaded)"""
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=Config.CHROMADB_PATH)
+        collection = client.get_or_create_collection(name=Config.COLLECTION_NAME)
+        return collection
+    except Exception as e:
+        print(f"❌ Error creating ChromaDB collection: {e}")
+        return None
+
+def init_chroma():
+    global chroma_collection
+    chroma_collection = get_collection()
+
 
 async def upload_file(file, dept, file_uuid):
     try:
         # Save the uploaded file to a temporary location
         file_path = f"{Config.DOCUMENTS_PATH}/{file_uuid}_{file.filename}"
+        # with open(file_path, "wb") as f:
+        #     f.write(file.file.read())
+        content = await file.read()
         with open(file_path, "wb") as f:
-            f.write(file.file.read())
+            f.write(content)
 
         # Extract text based on file type
         documents = TextExtraction.extract_text(file_path, dept, file_uuid)
@@ -29,6 +47,29 @@ async def upload_file(file, dept, file_uuid):
     except Exception as e:
         return {"error": str(e)}
     
+
+def delete_vectors_by_knowledge_id(knowledge_id: str):
+    if chroma_collection is None:
+        init_chroma()
+
+    if not chroma_collection:
+        return {"error": "Vector database chroma_collection not initialized"}
+
+    try:
+        results = chroma_collection.query(where={"knowledge_id": knowledge_id}, include=["ids"])
+        
+        vector_ids = results.get("ids", [])
+        if not vector_ids:
+            return {"message": f"No vectors found for knowledge_id: {knowledge_id}"}
+        
+        chroma_collection.delete(ids=vector_ids)
+        return {"message": f"Deleted {len(vector_ids)} vectors for knowledge_id: {knowledge_id}"}
+    
+    except Exception as e:
+        return {"error": str(e)}
+
+      
+
 async def upload_answer(question, answer, dept, pid=None):
     try:
         if not question.strip() or not answer.strip():
