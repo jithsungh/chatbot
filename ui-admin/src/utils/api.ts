@@ -1,7 +1,7 @@
 // API utility functions with proper error handling
 export const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? window.location.origin 
-  : '';
+  : 'http://localhost:8000';
 
 export interface ApiError {
   detail: string | Array<{

@@ -4,6 +4,5 @@ venv
 
 */vector_db
 
-documents/temp_*
 
 .env

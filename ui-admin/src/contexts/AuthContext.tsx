@@ -53,8 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        // // Check if we're in development mode
-        // const isDevelopment = window.location.hostname === 'localhost';
+        // Check if we're in development mode
+        const isDevelopment = window.location.hostname === 'localhost';
         
         // if (isDevelopment) {
         //   console.log('AuthContext: Development mode detected');
@@ -63,7 +63,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         //     id: 'dev-admin',
         //     name: 'Development Admin',
         //     email: 'admin@dev.local'
-        //   // }
+        //   // 
+        //   }
         // );
         //   setLoading(false);
         //   setIsInitialized(true);
