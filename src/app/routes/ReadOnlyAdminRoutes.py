@@ -376,6 +376,24 @@ async def list_uploaded_files(
     finally:
         session.close()
 
+@router.get("/download/{file_id}", name="download_file")
+async def download_file(file_id: str):
+    session = Config.get_session()
+    
+    try:
+        record = session.query(FileKnowledge).filter(FileKnowledge.id == file_id).first()
+        if not record:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        file_path = record.file_path
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="File not found on disk")
+        
+        return FileResponse(path=file_path, filename=record.file_name)
+    
+    finally:
+        session.close()
+
 # get dept keywords
 @router.get("/departments/keywords")
 async def get_dept_keywords(
