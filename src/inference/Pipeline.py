@@ -1,4 +1,9 @@
 from typing import Dict, Any
+import asyncio
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from src.models import DeptFailure, UserQuestion
+from src.config import Config
 
 class Pipeline:
     def __init__(self):
@@ -9,6 +14,9 @@ class Pipeline:
         self.promptGenerator = None
         self.llm_client = None
         self.response_formatter = None
+        
+        # Thread pool for async database operations
+        self.db_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="db_ops")
         
         print("🔧 Pipeline created (components will be loaded lazily)")
 
@@ -52,6 +60,76 @@ class Pipeline:
             print(f"❌ Pipeline component initialization failed: {e}")
             raise
 
+    def _async_dept_failure_check(self, dept: str, parsed_dept: str, std_question: str):
+        """Async function to handle department failure logging"""
+        try:
+            if dept != parsed_dept:
+                session = Config.get_session()
+                try:
+                    DeptFailure.create(
+                        session,
+                        query=std_question,
+                        detected=dept,
+                        expected=parsed_dept,
+                    )
+                    print(f"📝 Department failure logged: {dept} -> {parsed_dept}")
+                except Exception as e:
+                    print(f"❌ Error logging department failure: {e}")
+                finally:
+                    session.close()
+        except Exception as e:
+            print(f"❌ Error in async dept failure check: {e}")
+
+    def _async_user_question_save(self, userid: str, std_question: str, answer: str, context: str, dept: str):
+        """Async function to handle user question saving"""
+        try:
+            session = Config.get_session()
+            try:
+                new_record = UserQuestion(
+                    userid=userid,
+                    query=std_question,
+                    answer=answer,
+                    context=context,
+                    dept=dept,
+                    source='context'
+                )
+                session.add(new_record)
+                session.commit()
+                print(f"📝 User question saved for analysis: {std_question[:50]}...")
+            except Exception as e:
+                print(f"❌ Error saving user question: {e}")
+                session.rollback()
+            finally:
+                session.close()
+        except Exception as e:
+            print(f"❌ Error in async user question save: {e}")
+
+    def _submit_async_db_operations(self, dept: str, parsed, userid: str, context: str):
+        """Submit database operations to thread pool for async execution"""
+        try:
+            # Submit department failure check
+            if dept != parsed.dept:
+                self.db_executor.submit(
+                    self._async_dept_failure_check, 
+                    dept, 
+                    parsed.dept, 
+                    parsed.std_question
+                )
+            
+            # Submit user question save for context-less queries
+            if not parsed.has_context and len(parsed.std_question) > 15:
+                self.db_executor.submit(
+                    self._async_user_question_save,
+                    userid,
+                    parsed.std_question,
+                    parsed.answer,
+                    context,
+                    parsed.dept
+                )
+                
+        except Exception as e:
+            print(f"❌ Error submitting async database operations: {e}")
+
     def process_user_query(self, query: str, userid: str) -> Dict[str, Any]:
         try:
             # Initialize components only when first query comes in
@@ -82,7 +160,7 @@ class Pipeline:
             response = self.llm_client.get_response(prompt)
             parsed = self.response_formatter.to_json_object(response.content)
 
-            # 5) Update history
+            # 5) Update history (keep this synchronous as it's needed for conversation flow)
             self.history_manager.update_context(
                 userid, 
                 question=query, 
@@ -91,6 +169,10 @@ class Pipeline:
                 context=context
             )
 
+            # 6) Submit async database operations (non-blocking)
+            self._submit_async_db_operations(dept, parsed, userid, context)
+                
+            # Return response immediately without waiting for DB operations
             return parsed
         
         except Exception as e:
@@ -100,6 +182,15 @@ class Pipeline:
                 "followup": "Is there anything else I can help you with?",
                 "error": str(e)
             }
+
+    def __del__(self):
+        """Cleanup thread pool on destruction"""
+        try:
+            if hasattr(self, 'db_executor'):
+                self.db_executor.shutdown(wait=True)
+        except:
+            pass
+        
 # if __name__ == "__main__":
 #     pipeline = Pipeline()
 #     user_id = "user123"

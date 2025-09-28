@@ -6,50 +6,88 @@ class HybridDepartmentRouter:
     """
     Combines embeddings for semantic understanding with domain-specific keywords.
     Works for new queries intelligently while retaining high accuracy for known domain-specific cases.
+    Fetches keywords and descriptions from database dynamically.
     """
     
-    # Keywords for each department
-    KEYWORDS = {
-        "HR": [
-            "salary", "payroll", "leave", "vacation", "sick leave", "maternity", "paternity",
-            "benefits", "insurance", "health", "dental", "401k", "retirement", "pension",
-            "hiring", "recruitment", "onboarding", "offboarding", "termination", "resignation",
-            "performance", "review", "appraisal", "promotion", "training", "development",
-            "harassment", "discrimination", "complaint", "grievance", "policy", "handbook",
-            "employee", "staff", "colleague", "manager", "supervisor", "team lead",
-            "contract", "employment", "probation", "full-time", "part-time", "contractor",
-            "overtime", "shift", "schedule", "attendance", "time off", "pto", "holiday"
-        ],
-        
-        "IT": [
-            "computer", "laptop", "desktop", "monitor", "keyboard", "mouse", "printer",
-            "software", "application", "app", "program", "install", "update", "upgrade",
-            "password", "login", "access", "account", "credentials", "authentication",
-            "network", "wifi", "internet", "connection", "server", "database", "cloud",
-            "email", "outlook", "gmail", "attachment", "spam", "phishing",
-            "backup", "restore", "file", "folder", "document", "excel", "word", "pdf",
-            "virus", "malware", "antivirus", "security", "firewall", "vpn", "remote",
-            "troubleshoot", "bug", "error", "crash", "freeze", "slow", "performance",
-            "hard drive", "storage", "memory", "ram", "cpu", "hardware", "device"
-        ],
-        
-        "Security": [
-            "badge", "access card", "keycard", "entry", "door", "gate", "building",
-            "visitor", "guest", "contractor", "vendor", "escort", "registration",
-            "camera", "surveillance", "monitoring", "cctv", "recording", "footage",
-            "incident", "breach", "unauthorized", "suspicious", "threat", "emergency",
-            "evacuation", "fire drill", "safety", "protocol", "procedure", "compliance",
-            "parking", "vehicle", "license plate", "traffic", "patrol", "guard",
-            "alarm", "alert", "notification", "report", "investigation", "evidence",
-            "tailgating", "piggybacking", "social engineering", "phishing", "scam",
-            "theft", "vandalism", "trespassing", "assault", "harassment", "violence"
-        ]
-    }
-
     def __init__(self):
         # Import Config here to avoid circular imports
         from src.config import Config
         self.departments = Config.DEPARTMENTS
+        
+        # Initialize empty containers for database data
+        self.department_descriptions = {}
+        self.keywords = {}
+        
+        # Lazy initialization of models and embeddings
+        self._model = None
+        self._department_embeddings = None
+        
+        # Load data from database on startup
+        self._load_data_from_database()
+        
+        print("HybridDepartmentRouter initialized with departments:", self.departments)
+        print(f"Loaded {len(self.department_descriptions)} department descriptions")
+        print(f"Loaded keywords for {len(self.keywords)} departments")
+
+    def _load_data_from_database(self):
+        """Load department descriptions and keywords from database"""
+        try:
+            from src.config import Config
+            from src.models.department import Department
+            from src.models.dept_keyword import DeptKeyword
+            
+            session = Config.get_session()
+            
+            try:
+                # Load department descriptions
+                departments = Department.get_all(session)
+                self.department_descriptions = {}
+                
+                for dept in departments:
+                    dept_name = dept.name.value
+                    self.department_descriptions[dept_name] = dept.description
+                
+                # Load keywords for each department
+                self.keywords = {}
+                
+                for dept in departments:
+                    dept_name = dept.name.value
+                    dept_keywords = DeptKeyword.get_by_dept_id(session, dept.id)
+                    self.keywords[dept_name] = [kw.keyword for kw in dept_keywords]
+                
+                # Add General Inquiry as fallback if not in database
+                if "General Inquiry" not in self.department_descriptions:
+                    self.department_descriptions["General Inquiry"] = (
+                        "General inquiries about company information, directions, "
+                        "non-specific questions, or topics that don't clearly fit other departments."
+                    )
+                    self.keywords["General Inquiry"] = [
+                        "general", "help", "information", "about", "company", "location", 
+                        "contact", "phone", "address", "hours", "direction", "where"
+                    ]
+                
+                print(f"✅ Loaded {len(self.department_descriptions)} department descriptions from database")
+                print(f"✅ Loaded keywords for {len(self.keywords)} departments from database")
+                
+                # Log summary of loaded data
+                for dept_name in self.department_descriptions.keys():
+                    keyword_count = len(self.keywords.get(dept_name, []))
+                    print(f"   • {dept_name}: {keyword_count} keywords")
+                
+            except Exception as e:
+                print(f"❌ Error loading data from database: {e}")
+                self._load_fallback_data()
+                
+            finally:
+                session.close()
+                
+        except Exception as e:
+            print(f"❌ Critical error accessing database: {e}")
+            self._load_fallback_data()
+
+    def _load_fallback_data(self):
+        """Load fallback hardcoded data if database is unavailable"""
+        print("⚠️ Loading fallback hardcoded data...")
         
         self.department_descriptions = {
             "HR": "Human Resources handles employee relations, benefits, payroll, hiring, training, and workplace policies.",
@@ -58,10 +96,101 @@ class HybridDepartmentRouter:
             "General Inquiry": "General inquiries about company information, directions, non-specific questions, or topics that don't clearly fit other departments."
         }
 
-        # Lazy initialization of models and embeddings
-        self._model = None
-        self._department_embeddings = None
-        print("HybridDepartmentRouter initialized with departments:", self.departments)
+        self.keywords = {
+            "HR": [
+                "salary", "payroll", "leave", "vacation", "sick leave", "maternity", "paternity",
+                "benefits", "insurance", "health", "dental", "401k", "retirement", "pension",
+                "hiring", "recruitment", "onboarding", "offboarding", "termination", "resignation",
+                "performance", "review", "appraisal", "promotion", "training", "development",
+                "harassment", "discrimination", "complaint", "grievance", "policy", "handbook",
+                "employee", "staff", "colleague", "manager", "supervisor", "team lead",
+                "contract", "employment", "probation", "full-time", "part-time", "contractor",
+                "overtime", "shift", "schedule", "attendance", "time off", "pto", "holiday"
+            ],
+            
+            "IT": [
+                "computer", "laptop", "desktop", "monitor", "keyboard", "mouse", "printer",
+                "software", "application", "app", "program", "install", "update", "upgrade",
+                "password", "login", "access", "account", "credentials", "authentication",
+                "network", "wifi", "internet", "connection", "server", "database", "cloud",
+                "email", "outlook", "gmail", "attachment", "spam", "phishing",
+                "backup", "restore", "file", "folder", "document", "excel", "word", "pdf",
+                "virus", "malware", "antivirus", "security", "firewall", "vpn", "remote",
+                "troubleshoot", "bug", "error", "crash", "freeze", "slow", "performance",
+                "hard drive", "storage", "memory", "ram", "cpu", "hardware", "device"
+            ],
+            
+            "Security": [
+                "badge", "access card", "keycard", "entry", "door", "gate", "building",
+                "visitor", "guest", "contractor", "vendor", "escort", "registration",
+                "camera", "surveillance", "monitoring", "cctv", "recording", "footage",
+                "incident", "breach", "unauthorized", "suspicious", "threat", "emergency",
+                "evacuation", "fire drill", "safety", "protocol", "procedure", "compliance",
+                "parking", "vehicle", "license plate", "traffic", "patrol", "guard",
+                "alarm", "alert", "notification", "report", "investigation", "evidence",
+                "tailgating", "piggybacking", "social engineering", "phishing", "scam",
+                "theft", "vandalism", "trespassing", "assault", "harassment", "violence"
+            ]
+        }
+        
+        print("✅ Fallback data loaded")
+
+    def refresh_data_from_database(self) -> bool:
+        """
+        Refresh department descriptions and keywords from database.
+        Returns True if successful, False if failed.
+        """
+        try:
+            print("🔄 Refreshing department data from database...")
+            
+            # Store old data as backup
+            old_descriptions = self.department_descriptions.copy()
+            old_keywords = self.keywords.copy()
+            
+            # Clear embeddings cache so they get regenerated with new descriptions
+            self._department_embeddings = None
+            
+            # Reload from database
+            self._load_data_from_database()
+            
+            # Verify data was loaded successfully
+            if self.department_descriptions and self.keywords:
+                print("✅ Department data refreshed successfully!")
+                
+                # Log changes
+                new_dept_count = len(self.department_descriptions)
+                new_keyword_count = sum(len(kws) for kws in self.keywords.values())
+                
+                print(f"📊 Current data: {new_dept_count} departments, {new_keyword_count} total keywords")
+                
+                return True
+            else:
+                print("❌ Failed to refresh data - restoring backup")
+                self.department_descriptions = old_descriptions
+                self.keywords = old_keywords
+                return False
+                
+        except Exception as e:
+            print(f"❌ Error refreshing data from database: {e}")
+            return False
+
+    def get_data_summary(self) -> Dict:
+        """
+        Get summary of currently loaded department data.
+        Useful for debugging and monitoring.
+        """
+        summary = {
+            "departments": list(self.department_descriptions.keys()),
+            "total_departments": len(self.department_descriptions),
+            "total_keywords": sum(len(kws) for kws in self.keywords.values()),
+            "keywords_per_department": {
+                dept: len(keywords) 
+                for dept, keywords in self.keywords.items()
+            },
+            "has_embeddings": self._department_embeddings is not None,
+            "has_model": self._model is not None
+        }
+        return summary
 
     def _get_model(self):
         """Lazy load the model only when needed"""
@@ -121,7 +250,7 @@ class HybridDepartmentRouter:
         try:
             scores = {}
             
-            for dept, keywords in self.KEYWORDS.items():
+            for dept, keywords in self.keywords.items():
                 score = 0
                 words_in_query = query_clean.split()
                 

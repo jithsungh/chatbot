@@ -12,6 +12,10 @@ class UserQuestionStatus(enum.Enum):
     pending = "pending"
     processed = "processed"
 
+class QuerySource(enum.Enum):
+    user = "user"
+    context = "context"
+
 
 class DeptType(enum.Enum):
     HR = "HR"
@@ -28,6 +32,7 @@ class UserQuestion(Base):
     answer = Column(Text)
     context = Column(Text)
     status = Column(Enum(UserQuestionStatus), default=UserQuestionStatus.pending)
+    source = Column(Enum(QuerySource),default=QuerySource.user)
     dept = Column(Enum(DeptType))
     createdat = Column(TIMESTAMP(timezone=True), server_default=func.now())  # Changed from createdAt to createdat
 

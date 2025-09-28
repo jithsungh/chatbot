@@ -1,17 +1,20 @@
 from fastapi import APIRouter, HTTPException, Body, Depends
 from src.inference.Pipeline import Pipeline
 from src.inference.HybridRouter import HybridDepartmentRouter
+from src.admin.avg_response_cal import AvgResponseTimeCalculator
 from src.config import Config
-
+import time
 # Role-based authentication
 from src.dependencies.role_auth import require_read_only_or_above
 from src.models.admin import Admin
+
 
 router= APIRouter()
 
 pipeline = Pipeline()
 historyManager = Config.HISTORY_MANAGER
 department_router = HybridDepartmentRouter()
+avg_response_cal = AvgResponseTimeCalculator()
 
 
 @router.post("/query")
@@ -29,7 +32,11 @@ async def handle_query(
 
     
     try:
+        start = time.perf_counter()
         response = pipeline.process_user_query(query,userid)
+        end = time.perf_counter()
+        time_taken = end-start
+        avg_response_cal.store_response_time(time_taken)
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

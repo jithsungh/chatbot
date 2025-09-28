@@ -8,19 +8,10 @@ from src.dependencies.role_auth import require_super_admin, get_admin_id_from_ad
 from src.models.admin import Admin, AdminRole
 from src.config import Config
 
-# Lazy imports - only import when needed
-def get_upload_service():
-    from src.service import UploadService
-    return UploadService
+from src.service import UploadService
+from src.models import UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, ResponseTime, DeptFailure
 
-def get_models():
-    from src.models import (
-        UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, 
-        ResponseTime, DeptFailure
-    )
-    from src.models.user_question import DeptType
-    from src.models.admin_question import AdminQuestionStatus
-    return UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, ResponseTime, DeptFailure, DeptType, AdminQuestionStatus
+    
 
 router = APIRouter()
 
@@ -38,37 +29,61 @@ async def delete_all_files(
     """
     if confirmation != "DELETE_ALL_FILES":
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Invalid confirmation. Must be 'DELETE_ALL_FILES'"
         )
     
     session = Config.get_session()
-    UploadService = get_upload_service()
-    FileKnowledge, *_ = get_models()
     
     try:
-        # Get count before deletion
-        total_files = session.query(FileKnowledge).count()
-        
-        # Delete from vector database
-        upload_service = UploadService()
-        vector_result = await upload_service.purge_all_file_vectors()
-        
-        # Delete from database
+        # Fetch all file records first
+        all_files = session.query(FileKnowledge).all()
+        total_files = len(all_files)
+
+        if total_files == 0:
+            return {
+                "message": "No files found to delete",
+                "total_files_deleted": 0,
+                "vector_db_cleaned": True,
+                "deleted_by": str(current_admin.id),
+                "admin_name": current_admin.name
+            }
+
+        # Delete vectors for each file in vector DB
+        vector_results = []
+        for file_record in all_files:
+            try:
+                vec_result = UploadService.delete_vectors_by_knowledge_id(str(file_record.id))
+                vector_results.append({
+                    "file_id": str(file_record.id),
+                    "status": "success" if "error" not in vec_result else "error",
+                    "detail": vec_result
+                })
+            except Exception as ve:
+                vector_results.append({
+                    "file_id": str(file_record.id),
+                    "status": "error",
+                    "detail": str(ve)
+                })
+
+        # Delete all DB records
         deleted_count = session.query(FileKnowledge).delete()
         session.commit()
         
         return {
             "message": f"Successfully deleted {deleted_count} files",
             "total_files_deleted": deleted_count,
-            "vector_db_cleaned": vector_result.get("success", False),
+            "vector_results": vector_results,
             "deleted_by": str(current_admin.id),
             "admin_name": current_admin.name
         }
-        
+
+    except HTTPException:
+        session.rollback()
+        raise
     except Exception as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete files: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         session.close()
 
@@ -84,39 +99,64 @@ async def delete_all_text_knowledge(
     """
     if confirmation != "DELETE_ALL_TEXT":
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Invalid confirmation. Must be 'DELETE_ALL_TEXT'"
         )
     
     session = Config.get_session()
-    UploadService = get_upload_service()
-    _, _, TextKnowledge, *_ = get_models()
-    
+
     try:
-        # Get count before deletion
-        total_texts = session.query(TextKnowledge).count()
-        
-        # Delete from vector database
-        upload_service = UploadService()
-        vector_result = await upload_service.purge_all_text_vectors()
-        
-        # Delete from database
+        # Fetch all text records first
+        all_texts = session.query(TextKnowledge).all()
+        total_texts = len(all_texts)
+
+        if total_texts == 0:
+            return {
+                "message": "No text knowledge records found to delete",
+                "total_texts_deleted": 0,
+                "vector_results": [],
+                "deleted_by": str(current_admin.id),
+                "admin_name": current_admin.name
+            }
+
+        # Delete vectors for each text in vector DB
+        vector_results = []
+        for text_record in all_texts:
+            try:
+                vec_result = UploadService.delete_vectors_by_knowledge_id(str(text_record.id))
+                vector_results.append({
+                    "text_id": str(text_record.id),
+                    "status": "success" if "error" not in vec_result else "error",
+                    "detail": vec_result
+                })
+            except Exception as ve:
+                vector_results.append({
+                    "text_id": str(text_record.id),
+                    "status": "error",
+                    "detail": str(ve)
+                })
+
+        # Delete all DB records
         deleted_count = session.query(TextKnowledge).delete()
         session.commit()
         
         return {
             "message": f"Successfully deleted {deleted_count} text knowledge entries",
             "total_texts_deleted": deleted_count,
-            "vector_db_cleaned": vector_result.get("success", False),
+            "vector_results": vector_results,
             "deleted_by": str(current_admin.id),
             "admin_name": current_admin.name
         }
         
+    except HTTPException:
+        session.rollback()
+        raise
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete text knowledge: {str(e)}")
     finally:
         session.close()
+
 
 # Delete all user questions
 @router.delete("/user-questions/all")
@@ -135,11 +175,10 @@ async def delete_all_user_questions(
         )
     
     session = Config.get_session()
-    UserQuestion, *_ = get_models()
     
     try:
         # Get count before deletion
-        total_questions = session.query(UserQuestion).count()
+        # total_questions = session.query(UserQuestion).count()
         
         # Delete all user questions
         deleted_count = session.query(UserQuestion).delete()
@@ -175,15 +214,15 @@ async def delete_all_admin_questions(
         )
     
     session = Config.get_session()
-    _, AdminQuestion, *_ = get_models()
     
     try:
         # Get count before deletion
-        total_questions = session.query(AdminQuestion).count()
+        # total_questions = AdminQuestion.get_count()
         
         # Delete all admin questions
         deleted_count = session.query(AdminQuestion).delete()
         session.commit()
+        
         
         return {
             "message": f"Successfully deleted {deleted_count} admin questions",
@@ -215,11 +254,10 @@ async def delete_all_dept_failures(
         )
     
     session = Config.get_session()
-    *_, DeptFailure, _, _ = get_models()
     
     try:
         # Get count before deletion
-        total_failures = session.query(DeptFailure).count()
+        # total_failures = session.query(DeptFailure).count()
         
         # Delete all department failures
         deleted_count = session.query(DeptFailure).delete()
@@ -236,7 +274,7 @@ async def delete_all_dept_failures(
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete department failures: {str(e)}")
     finally:
-        session.close()
+        session.close()   
 
 # Delete all response times
 @router.delete("/response-times/all")
@@ -255,11 +293,10 @@ async def delete_all_response_times(
         )
     
     session = Config.get_session()
-    *_, ResponseTime, _, _ = get_models()
     
     try:
         # Get count before deletion
-        total_records = session.query(ResponseTime).count()
+        # total_records = session.query(ResponseTime).count()
         
         # Delete all response time records
         deleted_count = session.query(ResponseTime).delete()
@@ -532,6 +569,62 @@ async def update_admin(
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update admin: {str(e)}")
+    finally:
+        session.close()
+
+@router.put("/admin/resetpassword/{admin_id}")
+async def reset_admin_password(
+    admin_id: str,
+    new_password: str = Body(...),
+    current_admin: Admin = Depends(require_super_admin)
+):
+    """
+    Reset an admin's password by ID.
+    Only super_admin can reset other admins' passwords.
+    """
+
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    
+    session = Config.get_session()
+    try:
+        # Validate admin_id format
+        try:
+            admin_uuid = UUID(admin_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid admin ID format")
+        
+        # Find admin to reset password
+        admin_to_reset = Admin.get_by_id(session, admin_uuid)
+        if not admin_to_reset:
+            raise HTTPException(status_code=404, detail="Admin not found")
+        
+        # Hash new password
+        from src.app.routes.AdminAuthRoutes import safe_password_hash
+        hashed_password = safe_password_hash(new_password)
+        
+        # Update password
+        admin_to_reset.password = hashed_password
+        session.commit()
+        
+        return {
+            "message": f"Password for admin '{admin_to_reset.name}' reset successfully",
+            "admin": {
+                "id": str(admin_to_reset.id),
+                "name": admin_to_reset.name,
+                "email": admin_to_reset.email,
+                "role": admin_to_reset.role.value
+            },
+            "reset_by": str(current_admin.id),
+            "reset_by_name": current_admin.name
+        }
+        
+    except HTTPException:
+        session.rollback()
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to reset password: {str(e)}")
     finally:
         session.close()
 

@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Dict, List
+from typing import List
 from uuid import UUID
 
 from src.middleware.auth_middleware import token_validator

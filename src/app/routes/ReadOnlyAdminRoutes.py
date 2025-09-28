@@ -5,6 +5,8 @@ from typing import Optional, List
 from sqlalchemy import func
 import asyncio
 import os
+from src.app.routes.AdminAuthRoutes import safe_password_hash, safe_password_verify
+from src.service.get_response_times import get_last_n_avg_response_times
 
 # Import models and dependencies at the top
 from src.models import (
@@ -48,12 +50,85 @@ def parse_admin_id(admin_id_str: str,        current_admin: Admin) -> UUID:
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid admin ID format")
 
-# This function is no longer needed with role-based auth
-# async def get_admin_id_dependency() -> str:
-#     """Wrapper function for FastAPI dependency injection"""
-#     return await Config.get_admin_id_from_token()
 
-## Routes with improved admin filtering and error handling
+# get last n avg responses time 
+@router.get("/avg-response-times")
+async def get_avg_response_times(
+    interval: str = Query(None),
+    n: int = Query(None),
+    current_admin = Depends(require_read_only_or_above)
+):
+    
+    session = Config.get_session()
+    try:
+        data = get_last_n_avg_response_times(session,interval,n)
+        return {"interval": interval, "n": n, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+
+@router.put("/changepassword")
+async def change_password(
+    current_password: str = Body(..., embed=True, example="oldpassword"),
+    new_password: str = Body(..., embed=True, example="newpassword"),
+    current_admin: Admin = Depends(require_read_only_or_above),  # ensures logged-in admin
+):
+    """
+    Change password for the current logged-in admin.
+    Steps:
+      1. Verify current password is correct
+      2. Validate new password
+      3. Hash new password securely
+      4. Update in DB
+    """
+    if not current_password or not new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="Both 'current_password' and 'new_password' are required",
+        )
+
+    if current_password == new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from current password",
+        )
+
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be at least 8 characters long",
+        )
+
+    session = Config.get_session()
+    try:
+        # Re-fetch admin record from DB
+        admin_record = session.query(Admin).filter(Admin.id == current_admin.id).first()
+        if not admin_record:
+            raise HTTPException(status_code=404, detail="Admin not found")
+
+        # Verify current password
+        if not safe_password_verify(current_password, admin_record.password):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+        # Hash new password
+        hashed_new_password = safe_password_hash(new_password)
+
+        # Update in DB
+        admin_record.password = hashed_new_password
+        session.commit()
+
+        return {"message": "Password changed successfully"}
+
+    except HTTPException:
+        session.rollback()
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        session.close()
 
 # get all user questions --> modified with better admin filtering
 @router.get("/getuserquestions")
@@ -540,3 +615,33 @@ async def get_dashboard_stats(current_admin: Admin = Depends(require_read_only_o
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         session.close()
+
+@router.get("/router-data-summary")
+async def get_router_data_summary(
+    current_admin: Admin = Depends(require_read_only_or_above)
+):
+    """
+    Get summary of current router data.
+    Requires read-only admin access or above.
+    """
+    try:
+        from src.inference.Pipeline import pipeline
+        
+        # Initialize pipeline if needed
+        pipeline._initialize_components()
+        
+        # Get data summary
+        summary = pipeline.router.get_data_summary()
+        
+        return {
+            "message": "Router data summary retrieved successfully",
+            "data_summary": summary,
+            "requested_by": str(current_admin.id)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting router data summary: {str(e)}"
+        )
+

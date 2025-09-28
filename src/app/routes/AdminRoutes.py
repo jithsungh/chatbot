@@ -9,6 +9,8 @@ from src.config import Config
 
 from src.admin.filter import QuestionFilter
 
+from .UserRoutes import department_router
+
 # Role-based authentication
 from src.dependencies.role_auth import require_admin_or_above, get_admin_id_from_admin
 from src.models.admin import Admin
@@ -481,6 +483,7 @@ async def add_keywords(
             added_keywords.append({"id": str(keyword_record.id), "keyword": kw})
 
         session.commit()        
+
         return {
             "success": True,
             "department": dept_name,
@@ -491,6 +494,7 @@ async def add_keywords(
         session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
+        department_router.refresh_data_from_database()
         session.close()
 
 
@@ -519,6 +523,8 @@ async def edit_keyword(
 
         keyword_record.keyword = new_keyword.strip()
         session.commit()        
+
+
         return {
             "success": True,
             "keyword_id": keyword_id,
@@ -530,6 +536,8 @@ async def edit_keyword(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+        # refresh department_router data
+        department_router.router.refresh_data_from_database()
 
 
 # -----------------------
@@ -555,7 +563,8 @@ async def delete_keyword(
             raise HTTPException(status_code=404, detail="Keyword not found")
 
         session.delete(keyword_record)
-        session.commit()        
+        session.commit()  
+
         return {
             "success": True,
             "keyword_id": keyword_id,
@@ -566,6 +575,8 @@ async def delete_keyword(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+        # refresh department_router data
+        department_router.refresh_data_from_database()      
 
 # edit description
 @router.put("/departments/{dept_name}")
@@ -618,6 +629,45 @@ async def purge_user_history(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    
+
+# ...existing code...
+
+@router.post("/refresh-router-data")
+async def refresh_router_data(
+    current_admin: Admin = Depends(require_admin_or_above)
+):
+    """
+    Refresh department routing data from database.
+    Requires admin role or above.
+    """
+    try:
+
+        # Refresh router data
+        success = department_router.router.refresh_data_from_database()
+        
+        if success:
+            # Get updated summary
+            summary = department_router.router.get_data_summary()
+
+            return {
+                "message": "Router data refreshed successfully",
+                "success": True,
+                "data_summary": summary,
+                "refreshed_by": str(current_admin.id),
+                "admin_name": current_admin.name
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to refresh router data from database"
+            )
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error refreshing router data: {str(e)}"
+        )
 
 
 
