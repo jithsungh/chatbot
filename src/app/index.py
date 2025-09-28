@@ -70,7 +70,7 @@ origins = [
     "http://127.0.0.1:5173",
     "http://localhost:8080",   # Next.js local dev
     # "https://chatbot-iota-black.vercel.app",  # React prod
-    # "https://chatbot-admin-techmojo.lovable.app",
+    "https://chatbot-admin-techmojo.lovable.app",
 ]
 
 app.add_middleware(
