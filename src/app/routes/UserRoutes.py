@@ -6,7 +6,7 @@ from src.config import Config
 router= APIRouter()
 
 pipeline = Pipeline()
-historyManager = Config.HISTORY_MANAGER()
+historyManager = Config.HISTORY_MANAGER
 department_router = HybridDepartmentRouter()
 
 def get_auth_dependencies():
