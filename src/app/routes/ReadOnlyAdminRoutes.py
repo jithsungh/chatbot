@@ -12,7 +12,8 @@ from src.models import (
     ResponseTime, Department, DeptKeyword, Admin
 )
 from src.models.user_question import DeptType
-from src.dependencies.auth import validate_admin_token, get_admin_id_from_token
+# Role-based authentication
+from src.dependencies.role_auth import require_read_only_or_above, get_admin_id_from_admin
 from src.config import Config
 
 router = APIRouter()
@@ -38,19 +39,19 @@ def validate_department(dept: str) -> DeptType:
         )
 
 # Helper function to parse admin ID safely
-def parse_admin_id(admin_id_str: str, current_admin_id: str) -> UUID:
+def parse_admin_id(admin_id_str: str,        current_admin: Admin) -> UUID:
     """Parse admin ID string to UUID safely"""
     if admin_id_str.lower() == "self":
-        return UUID(current_admin_id)
+        return current_admin.id
     try:
         return UUID(admin_id_str)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid admin ID format")
 
-# Wrapper for Config.get_admin_id_from_token to work with FastAPI Depends
-async def get_admin_id_dependency() -> str:
-    """Wrapper function for FastAPI dependency injection"""
-    return await Config.get_admin_id_from_token()
+# This function is no longer needed with role-based auth
+# async def get_admin_id_dependency() -> str:
+#     """Wrapper function for FastAPI dependency injection"""
+#     return await Config.get_admin_id_from_token()
 
 ## Routes with improved admin filtering and error handling
 
@@ -63,7 +64,7 @@ async def get_user_questions(
     sort_by: bool = Query(False),  # default ascending, true means descending
     limit: int = Query(100, ge=1, le=1000),  # Add pagination
     offset: int = Query(0, ge=0),
-    admin_id: str = Depends(get_admin_id_from_token)  # Validate admin token
+    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
 ):
     """
     Retrieve user questions based on status, department, and admin.
@@ -108,8 +109,7 @@ async def get_user_questions(
         
         # Get admin names for the results
         result = []
-        for q in questions:
-            result.append({
+        for q in questions:            result.append({
                 "id": str(q.id),
                 "query": q.query,
                 "answer": q.answer,
@@ -124,7 +124,7 @@ async def get_user_questions(
             "total": total_count,
             "limit": limit,
             "offset": offset,
-            "requested_by": admin_id
+            "requested_by": str(current_admin.id)
         }
         
     except HTTPException:
@@ -143,7 +143,7 @@ async def get_admin_questions(
     sort_by: bool = Query(False),  # default ascending, true = descending
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    admin_id: str = Depends(get_admin_id_from_token)  # Validate admin token
+    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
 ):
     """
     Retrieve admin questions based on status, department, and admin.
@@ -174,7 +174,7 @@ async def get_admin_questions(
             dept_enum = DeptType(dept)
             query = query.filter(AdminQuestion.dept == dept_enum)
         if admin:
-            admin_uuid = parse_admin_id(admin, admin_id)
+            admin_uuid = parse_admin_id(admin, current_admin)
             query = query.filter(AdminQuestion.adminid == admin_uuid)
 
         # Sorting
@@ -207,11 +207,10 @@ async def get_admin_questions(
             })
         
         return {
-            "questions": result,
-            "total": total_count,
+            "questions": result,            "total": total_count,
             "limit": limit,
             "offset": offset,
-            "requested_by": admin_id
+            "requested_by": str(current_admin.id)
         }
         
     except HTTPException:
@@ -228,8 +227,7 @@ async def get_all_text_knowledge(
     adminid: Optional[str] = Query(None),  # "self" or specific UUID
     sort_by: bool = Query(False),  # default asc, True = desc
     limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
-    token_payload: dict = Depends(validate_admin_token)  # Validate admin token
+    offset: int = Query(0, ge=0),    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
 ):
     """
     Retrieve all text knowledge records, optionally filtered by department and admin.
@@ -254,9 +252,8 @@ async def get_all_text_knowledge(
             dept_enum = DeptType(dept)
             query = query.filter(TextKnowledge.dept == dept_enum)
 
-        # Admin filter
-        if adminid:
-            admin_uuid = parse_admin_id(adminid, token_payload["admin_id"])
+        # Admin filter        if adminid:
+            admin_uuid = parse_admin_id(adminid, current_admin)
             query = query.filter(TextKnowledge.adminid == admin_uuid)
 
         # Sorting
@@ -290,7 +287,7 @@ async def get_all_text_knowledge(
             "total": total_count,
             "limit": limit,
             "offset": offset,
-            "requested_by": token_payload["admin_id"]
+            "requested_by": str(current_admin.id)
         }
     
     except HTTPException:
@@ -308,8 +305,7 @@ async def list_uploaded_files(
     admin: Optional[str] = Query(None, description="Filter by admin ('self' or admin_id)"),
     sort_by: Optional[str] = Query("desc", description="Sort by createdat: 'asc' or 'desc'"),
     limit: int = Query(100, ge=1, le=1000, description="Max number of results"),
-    offset: int = Query(0, ge=0, description="Number of results to skip"),
-    admin_id: str = Depends(get_admin_id_from_token)  # Current admin
+    offset: int = Query(0, ge=0, description="Number of results to skip"),    current_admin: Admin = Depends(require_read_only_or_above)  # Current admin
 ):
     """
     List uploaded files with optional filters and pagination.
@@ -328,9 +324,8 @@ async def list_uploaded_files(
             dept_enum = validate_department(dept)
             query = query.filter(FileKnowledge.dept == dept_enum)
 
-        # Filter by admin
-        if admin:
-            admin_uuid = parse_admin_id(admin, admin_id)
+        # Filter by admin        if admin:
+            admin_uuid = parse_admin_id(admin, current_admin)
             query = query.filter(FileKnowledge.adminid == admin_uuid)
 
         # Sort by createdat
@@ -366,7 +361,7 @@ async def list_uploaded_files(
             "total": total_count,
             "limit": limit,
             "offset": offset,
-            "requested_by": admin_id
+            "requested_by": str(current_admin.id)
         }
 
     except HTTPException:
@@ -398,7 +393,7 @@ async def download_file(file_id: str):
 @router.get("/departments/keywords")
 async def get_dept_keywords(
     dept_name: Optional[str] = Query(None, description="Filter by department name (HR, IT, Security)"),
-    admin_id: str = Depends(get_admin_id_from_token)  # Validate admin token
+    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
 ):
     """
     Retrieve department keywords grouped by department name.
@@ -445,7 +440,7 @@ async def get_dept_keywords(
 @router.get("/departments/descriptions")
 async def get_dept_descriptions(
     dept_name: Optional[str] = Query(None, description="Filter by department name (HR, IT, Security)"),
-    admin_id: str = Depends(get_admin_id_from_token)  # Validate admin token
+    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
 ):
     """
     Retrieve department descriptions.
@@ -471,13 +466,12 @@ async def get_dept_descriptions(
                 "description": dept.description,
                 "created_at": dept.createdat.isoformat() if dept.createdat else None
             }
-            for dept in departments
-        ]
+            for dept in departments        ]
         
         return {
             "departments": result,
             "total": len(result),
-            "requested_by": admin_id
+            "requested_by": str(current_admin.id)
         }
         
     except HTTPException:
@@ -489,7 +483,7 @@ async def get_dept_descriptions(
 
 # get dashboard stats
 @router.get("/dashboard/stats")
-async def get_dashboard_stats(admin_id: str = Depends(get_admin_id_dependency)):
+async def get_dashboard_stats(current_admin: Admin = Depends(require_read_only_or_above)):
     """
     Retrieve dashboard statistics:
       - number of questions processed
@@ -537,10 +531,9 @@ async def get_dashboard_stats(admin_id: str = Depends(get_admin_id_dependency)):
             "total_text_knowledge": text_knowledge_count,
             "total_file_knowledge": file_knowledge_count,
             "pending_questions": pending_admin_questions,
-            "processed_questions": processed_admin_questions,
-            "avg_response_time": avg_response_time,
+            "processed_questions": processed_admin_questions,            "avg_response_time": avg_response_time,
             "active_users": active_users_count,
-            "requested_by": admin_id
+            "requested_by": str(current_admin.id)
         }
         
     except Exception as e:

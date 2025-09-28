@@ -9,8 +9,9 @@ from src.config import Config
 
 from src.admin.filter import QuestionFilter
 
-from src.dependencies.auth import validate_admin_token, get_admin_id_from_token
-
+# Role-based authentication
+from src.dependencies.role_auth import require_admin_or_above, get_admin_id_from_admin
+from src.models.admin import Admin
 
 from src.models import UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, Department, DeptKeyword
 from src.models.user_question import DeptType
@@ -34,7 +35,7 @@ def validate_department(dept: str) -> DeptType:
 async def upload_files(
     dept: str,
     files: list[UploadFile] = File(...),
-    admin_id: str = Depends(get_admin_id_from_token),
+    current_admin: Admin = Depends(require_admin_or_above),
     concurrent_limit: int = Query(3, ge=1, le=5, description="Number of files to process concurrently")
 ):
     """
@@ -70,10 +71,10 @@ async def upload_files(
             if isinstance(file_path, dict) and "error" in file_path:
                 raise Exception(file_path["error"])
 
-            from src.models.user_question import DeptType
+            from src.models.user_question import DeptType            
             record = FileKnowledge.create(
                 session=session,
-                adminid=UUID(admin_id),
+                adminid=current_admin.id,
                 file_name=file.filename,
                 file_path=file_path,
                 dept=DeptType(dept)
@@ -95,15 +96,14 @@ async def upload_files(
 
     total_files = len(files)
     successful_uploads = sum(1 for r in results if r["status"] == "success")
-    failed_uploads = total_files - successful_uploads
-
+    failed_uploads = total_files - successful_uploads    
     return {
         "message": f"Processed {total_files} files",
         "successful_uploads": successful_uploads,
         "failed_uploads": failed_uploads,
         "results": results,
         "department": dept,
-        "uploaded_by": admin_id
+        "uploaded_by": str(current_admin.id)
     }
 
 # upload text knowledge
@@ -112,7 +112,7 @@ async def upload_text(
     dept: str,
     title: str = Body(..., embed=True),
     text: str = Body(..., embed=True),
-    admin_id: str = Depends(get_admin_id_from_token)
+    current_admin: Admin = Depends(require_admin_or_above)
 ):
     """Upload raw text to be processed and stored in the vector database."""
     
@@ -137,12 +137,8 @@ async def upload_text(
         
         if len(title.strip()) > 255:
             raise HTTPException(status_code=400, detail="Title must be less than 255 characters")
-        
-        # Convert admin_id from token to UUID
-        try:
-            admin_uuid = UUID(admin_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid admin ID from token")
+          # Get admin UUID from current admin
+        admin_uuid = current_admin.id
         
         # Convert department string to enum
         try:
@@ -163,21 +159,20 @@ async def upload_text(
         result = await UploadService.upload_text(text, dept, title, str(text_knowledge.id))
         
         # Check if vector processing was successful
-        if "error" in result:
+        if "error" in result:            
             return {
                 "success": True,
                 "message": "Text stored in database but vector processing failed",
                 "database_id": str(text_knowledge.id),
                 "vector_error": result["error"],
-                "uploaded_by": admin_id
+                "uploaded_by": str(current_admin.id)
             }
-        
         return {
             "success": True,
             "message": "Text successfully stored in database and vector database",
             "database_id": str(text_knowledge.id),
             "result": result,
-            "uploaded_by": admin_id
+            "uploaded_by": str(current_admin.id)
         }
         
     except HTTPException:
@@ -192,7 +187,7 @@ async def upload_text(
 # summarize pending user questions
 @router.post("/summarize")
 async def summarize_pending_questions(
-    admin_id: str = Depends(get_admin_id_from_token)  # Validate admin token
+    current_admin: Admin = Depends(require_admin_or_above)  # Validate admin token
 ):
     """
     Summarize pending admin questions using the QuestionFilter service.
@@ -220,18 +215,17 @@ async def summarize_pending_questions(
             for error in result['errors']:
                 print(f"  - {error}")
         print("="*50)
-        
-        # Add admin info to result
-        result["processed_by"] = admin_id
+          # Add admin info to result
+        result["processed_by"] = str(current_admin.id)
         
         return result
         
     except Exception as e:
-        print(f"❌ Test pipeline failed: {e}")
+        print(f"❌ Test pipeline failed: {e}")        
         return {
             "success": False, 
             "errors": [str(e)],
-            "processed_by": admin_id
+            "processed_by": str(current_admin.id)
         }
     finally:
         session.close()
@@ -239,10 +233,9 @@ async def summarize_pending_questions(
 # answer to questions
 @router.post("/answer")
 async def answer_admin_question(
-
     question_id: str = Body(..., embed=True),
     answer: str = Body(..., embed=True),
-    admin_id: str = Depends(get_admin_id_from_token)  # Get admin_id from token
+    current_admin: Admin = Depends(require_admin_or_above)  # Get admin from token
 ):
     """
     Store the answer to an admin question and mark it as processed.
@@ -265,13 +258,8 @@ async def answer_admin_question(
         try:
             q_id = UUID(question_id)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid question_id format")
-
-        # Validate admin_id from token
-        try:
-            admin_uuid = UUID(admin_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid admin ID from token")
+            raise HTTPException(status_code=400, detail="Invalid question_id format")        # Get admin UUID from current admin
+        admin_uuid = current_admin.id
 
         # Fetch the admin question
         admin_question = session.query(AdminQuestion).filter(AdminQuestion.id == q_id).first()
@@ -308,14 +296,13 @@ async def answer_admin_question(
         admin_question.vectordbid = UUID(vector_document_id)
         admin_question.adminid = admin_uuid  # Set the answering admin
 
-        session.commit()
-
+        session.commit()        
         return {
             "success": True, 
             "message": "Answer stored and question marked as processed",
             "vector_id": vector_document_id,
             "question_id": str(admin_question.id),
-            "answered_by": admin_id
+            "answered_by": str(current_admin.id)
         }
         
     except HTTPException:
@@ -332,7 +319,7 @@ async def answer_admin_question(
 @router.delete("/files/{file_id}")
 async def delete_file(
     file_id: str,
-    admin_id: str = Depends(get_admin_id_from_token)
+    current_admin: Admin = Depends(require_admin_or_above)
 ):
     session = Config.get_session()
     try:
@@ -360,12 +347,11 @@ async def delete_file(
         # Delete DB record
         session.delete(file_record)
         session.commit()
-        
         return {
             "success": True,
             "message": "File knowledge record and associated file deleted",
             "file_id": file_id,
-            "deleted_by": admin_id
+            "deleted_by": str(current_admin.id)
         }
         
     except HTTPException:
@@ -384,7 +370,7 @@ async def edit_text_knowledge(
     title: Optional[str] = Body(None, embed=True),
     text: Optional[str] = Body(None, embed=True),
     dept: Optional[str] = Body(None, embed=True),
-    admin_id: str = Depends(get_admin_id_from_token)
+    current_admin: Admin = Depends(require_admin_or_above)
 ):
     """
     Edit an existing text knowledge record:
@@ -474,7 +460,7 @@ async def edit_text_knowledge(
 async def add_keywords(
     dept_name: str = Body(..., embed=True),
     keywords: List[str] = Body(..., embed=True),
-    admin_id: str = Depends(get_admin_id_from_token)
+    current_admin: Admin = Depends(require_admin_or_above)
 ):
     """
     Add one or multiple keywords to a department.
@@ -494,12 +480,12 @@ async def add_keywords(
             keyword_record = DeptKeyword.create(session=session, dept_id=department.id, keyword=kw)
             added_keywords.append({"id": str(keyword_record.id), "keyword": kw})
 
-        session.commit()
+        session.commit()        
         return {
             "success": True,
             "department": dept_name,
             "added_keywords": added_keywords,
-            "added_by": admin_id
+            "added_by": str(current_admin.id)
         }
     except Exception as e:
         session.rollback()
@@ -515,7 +501,7 @@ async def add_keywords(
 async def edit_keyword(
     keyword_id: str,
     new_keyword: str = Body(..., embed=True),
-    admin_id: str = Depends(get_admin_id_from_token)
+    current_admin: Admin = Depends(require_admin_or_above)
 ):
     """
     Update the value of an existing keyword.
@@ -532,13 +518,12 @@ async def edit_keyword(
             raise HTTPException(status_code=404, detail="Keyword not found")
 
         keyword_record.keyword = new_keyword.strip()
-        session.commit()
-
+        session.commit()        
         return {
             "success": True,
             "keyword_id": keyword_id,
             "new_keyword": keyword_record.keyword,
-            "updated_by": admin_id
+            "updated_by": str(current_admin.id)
         }
     except Exception as e:
         session.rollback()
@@ -553,7 +538,7 @@ async def edit_keyword(
 @router.delete("/departments/keywords/{keyword_id}")
 async def delete_keyword(
     keyword_id: str,
-    admin_id: str = Depends(get_admin_id_from_token)
+    current_admin: Admin = Depends(require_admin_or_above)
 ):
     """
     Delete a department keyword by its ID.
@@ -570,12 +555,11 @@ async def delete_keyword(
             raise HTTPException(status_code=404, detail="Keyword not found")
 
         session.delete(keyword_record)
-        session.commit()
-
+        session.commit()        
         return {
             "success": True,
             "keyword_id": keyword_id,
-            "deleted_by": admin_id
+            "deleted_by": str(current_admin.id)
         }
     except Exception as e:
         session.rollback()
@@ -588,7 +572,7 @@ async def delete_keyword(
 async def edit_department_description(
     dept_name: str,
     new_description: str = Body(..., embed=True),
-    admin_id: str = Depends(get_admin_id_from_token)
+    current_admin: Admin = Depends(require_admin_or_above)
 ):
     """
     Update the description of a department.
@@ -601,13 +585,12 @@ async def edit_department_description(
             raise HTTPException(status_code=404, detail="Department not found")
 
         department.description = new_description.strip()
-        session.commit()
-
+        session.commit()        
         return {
             "success": True,
             "department": dept_name,
             "new_description": department.description,
-            "updated_by": admin_id
+            "updated_by": str(current_admin.id)
         }
     except Exception as e:
         session.rollback()
