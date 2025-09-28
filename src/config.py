@@ -78,7 +78,7 @@ class Config:
 
     # document storage paths
     DOCUMENTS_PATH = os.getenv("DOCUMENTS_PATH", "./documents")
-    CHROMADB_PATH = os.getenv("CHROMADB_PATH", "./chroma_db")
+    CHROMADB_PATH = os.getenv("CHROMADB_PATH", "./chromadb")
     COLLECTION_NAME = os.getenv("COLLECTION_NAME", "TM-DOCS")
 
     # Database Configuration - Direct Connection (No Lazy Loading)
