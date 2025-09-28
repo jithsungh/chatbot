@@ -1,9 +1,9 @@
 import fitz
 from docx import Document 
 from langchain.schema import Document as docu
-
+from uuid import UUID
 # Extracts text from .txt files
-def get_text_from_txt(file_path, dept):
+def get_text_from_txt(file_path, dept, file_uuid: UUID | None = None):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -11,7 +11,7 @@ def get_text_from_txt(file_path, dept):
             document = [
                 docu(
                     page_content=content,
-                    metadata={"source": file_path, "page": 1, "department": dept, "type": "document"}  #can add version details that will help in future
+                    metadata={"knowledge_id": file_uuid, "source": file_path, "page": 1, "department": dept, "type": "document"}  #can add version details that will help in future
                 )
             ]
             return document
@@ -22,7 +22,7 @@ def get_text_from_txt(file_path, dept):
 
 
 # Extracts text from .pdf files
-def get_text_from_pdf(file_path, dept):
+def get_text_from_pdf(file_path, dept, file_uuid: UUID | None = None):
     try:
         doc = fitz.open(file_path)
         documents = []
@@ -32,7 +32,7 @@ def get_text_from_pdf(file_path, dept):
                 documents.append(
                     docu(
                         page_content=text,
-                        metadata={"source": file_path, "page": page_num + 1, "department": dept, "type":"document"}
+                        metadata={"knowledge_id": file_uuid, "source": file_path, "page": page_num + 1, "department": dept, "type":"document"}
                     )
                 )
         return documents
@@ -42,7 +42,7 @@ def get_text_from_pdf(file_path, dept):
 
 
 # Extracts text from .docx files
-def get_text_from_docx(file_path, dept):
+def get_text_from_docx(file_path, dept, file_uuid: UUID | None = None):
     try:
         doc = Document(file_path)
         full_text = [para.text for para in doc.paragraphs if para.text.strip()]
@@ -52,7 +52,7 @@ def get_text_from_docx(file_path, dept):
             document = [
                 docu(
                     page_content=content,
-                    metadata={"source": file_path, "page": 1, "department": dept, "type":"document" }
+                    metadata={"knowledge_id": file_uuid, "source": file_path, "page": 1, "department": dept, "type":"document" }
                 )
             ]
             return document
@@ -62,7 +62,7 @@ def get_text_from_docx(file_path, dept):
         return None
 
 # -------------------- RAW TEXT --------------------
-def process_raw_text(raw_text: str, dept: str, title: str):
+def process_raw_text(raw_text: str, dept: str, title: str, text_uuid: UUID | None = None):
     """
     Wrap raw text into a LangChain Document with department metadata.
     """
@@ -71,7 +71,7 @@ def process_raw_text(raw_text: str, dept: str, title: str):
             return [
                 docu(
                     page_content=raw_text.strip(),
-                    metadata={"source": "raw_input", "title":title, "page": 1, "department": dept, "type":"text"}
+                    metadata={"knowledge_id": text_uuid, "source": "raw_input", "title":title, "page": 1, "department": dept, "type":"text"}
                 )
             ]
         return []
@@ -96,22 +96,19 @@ def process_qa_text(qa_text: str, dept: str, pid):
         return None
 
 # -------------------- Dispatcher --------------------
-def extract_text(file_path: str | None = None, dept: str = "General Inquiry", text: str | None = None):
+def extract_text(file_path: str | None = None, dept: str = "General Inquiry", file_uuid: UUID | None = None):
     """
     Unified entry point:
       - Pass file_path to extract from .txt / .pdf / .docx
       - Or pass raw `text`
     """
-    if text is not None:
-        return process_raw_text(text, dept)
-
     if file_path:
         if file_path.endswith(".txt"):
-            return get_text_from_txt(file_path, dept)
+            return get_text_from_txt(file_path, dept, file_uuid)
         elif file_path.endswith(".pdf"):
-            return get_text_from_pdf(file_path, dept)
+            return get_text_from_pdf(file_path, dept, file_uuid)
         elif file_path.endswith(".docx"):
-            return get_text_from_docx(file_path, dept)
+            return get_text_from_docx(file_path, dept, file_uuid)
         else:
             print(f"Unsupported file format: {file_path}")
             return None

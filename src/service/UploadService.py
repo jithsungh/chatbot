@@ -10,7 +10,7 @@ async def upload_file(file, dept, file_uuid):
             f.write(file.file.read())
 
         # Extract text based on file type
-        documents = TextExtraction.extract_text(file_path, dept)
+        documents = TextExtraction.extract_text(file_path, dept, file_uuid)
 
         if documents is None:
             return {"error": "Failed to extract text from the document"}
@@ -58,13 +58,13 @@ async def upload_answer(question, answer, dept, pid=None):
     except Exception as e:
         return {"error": str(e)}
 
-async def upload_text(text, dept, title):
+async def upload_text(text, dept, title, text_uuid=None):
     try:
         if not text.strip():
             return {"error": "Input text is empty"}
         
         # Wrap raw text into a LangChain Document with department metadata
-        documents = TextExtraction.process_raw_text(text, dept, title)
+        documents = TextExtraction.process_raw_text(text, dept, title, text_uuid)
 
         # Clean the input text
         cleaned_text = TextCleaning.docu_after_cleaning(documents)

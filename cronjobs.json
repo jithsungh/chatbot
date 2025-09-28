@@ -15,7 +15,7 @@
         "title": "purge user history",
         "description": "Purge user history older than 48 hours",
         "time period": "24h",
-        "endpoint": ""
+        "endpoint": "api/admin/history/purge"
     },
     {
         "title": "Average response times",

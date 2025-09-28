@@ -170,7 +170,7 @@ async def upload_text(
         )
         
         # Process through upload service for vector database storage - ADD AWAIT HERE
-        result = await UploadService.upload_text(text, dept, title)
+        result = await UploadService.upload_text(text, dept, title, text_knowledge.id)
         
         # Check if vector processing was successful
         if "error" in result:
@@ -360,6 +360,24 @@ async def answer_admin_question(
 # upsert vector db with id
 
 # purge user history older than given time , default 24hrs
+@router.delete("/history/purge")
+async def purge_user_history(
+    time_hours: int = Query(24, ge=1, le=168, description="Purge history older than this many hours (1-168)"),
+):
+    """
+    Purge user conversation history older than the specified number of hours.
+    Default is 24 hours, max is 168 hours (7 days).
+    """
+    Config = get_config()
+    historyManager = Config.HISTORY_MANAGER
+    try:
+        deleted_count = historyManager.purge_old_context(older_than_hours=time_hours)
+        return {
+            "success": True,
+            "message": f"Purged {deleted_count} history records older than {time_hours} hours"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 
