@@ -12,6 +12,12 @@ class DeptFailureStatus(enum.Enum):
     processed = "processed"
     discarded = "discarded"
 
+class DeptCategory(enum.Enum):
+    HR = "HR"
+    IT = "IT"
+    Security = "Security"
+    General_Inquiry = "General Inquiry"
+
 class DeptFailure(Base):
     __tablename__ = "dept_failures"
 
@@ -19,8 +25,8 @@ class DeptFailure(Base):
     query = Column(Text, nullable=False)
     adminid = Column(UUID(as_uuid=True), nullable=True)
     comments = Column(Text, nullable=True)
-    detected = Column(Text, nullable=False)
-    expected = Column(Text, nullable=False)
+    detected = Column(Enum(DeptCategory), nullable=False)
+    expected = Column(Enum(DeptCategory), nullable=False)
     status = Column(Enum(DeptFailureStatus), default=DeptFailureStatus.pending)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 

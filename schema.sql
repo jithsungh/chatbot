@@ -68,6 +68,7 @@ CREATE TYPE public.dept_failure_status AS ENUM (
 );
 
 
+
 ALTER TYPE public.dept_failure_status OWNER TO postgres;
 
 --
@@ -186,6 +187,14 @@ ALTER TABLE public.departments_id_seq OWNER TO postgres;
 ALTER SEQUENCE public.departments_id_seq OWNED BY public.departments.id;
 
 
+CREATE TYPE public.dept_category AS ENUM (
+    'HR',
+    'IT',
+    'Security',
+    'General Inquiry'
+);
+
+ALTER TYPE public.dept_category OWNER TO postgres;
 --
 -- Name: dept_failures; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -195,8 +204,8 @@ CREATE TABLE public.dept_failures (
     query text NOT NULL,
     adminid uuid,
     comments text,
-    detected public.dept_type NOT NULL,
-    expected public.dept_type NOT NULL,
+    detected public.dept_category NOT NULL,
+    expected public.dept_category NOT NULL,
     status public.dept_failure_status DEFAULT 'pending'::public.dept_failure_status,
     created_at timestamp with time zone DEFAULT now()
 );
