@@ -3,6 +3,11 @@ from uuid import uuid4,UUID
 from typing import Optional, List
 import asyncio
 import os
+import logging
+
+logger = logging.getLogger("delete_file_logger")
+logging.basicConfig(level=logging.INFO)
+
 from src.service import UploadService
 
 from src.config import Config
@@ -317,46 +322,110 @@ async def answer_admin_question(
     finally:
         session.close()
 
-
-# delete file by id
 @router.delete("/files/{file_id}")
 async def delete_file(
     file_id: str,
-    current_admin: Admin = Depends(require_admin_or_above)
+    current_admin: Admin = Depends(require_admin_or_above),
+    debug: bool = Query(False, description="Set true to enable verbose debug logging")
 ):
     session = Config.get_session()
     try:
         # Validate UUID
         try:
             f_id = UUID(file_id)
+            if debug: logger.info(f"Validated file_id: {f_id}")
         except ValueError:
+            logger.error(f"Invalid file_id format: {file_id}")
             raise HTTPException(status_code=400, detail="Invalid file_id format")
         
         # Fetch record
         file_record = session.query(FileKnowledge).filter(FileKnowledge.id == f_id).first()
         if not file_record:
+            logger.warning(f"File record not found for ID: {f_id}")
             raise HTTPException(status_code=404, detail="File knowledge record not found")
+        
+        if debug: logger.info(f"Found file record: {file_record.file_path}")
         
         # Delete physical file
         if os.path.exists(file_record.file_path):
             try:
                 os.remove(file_record.file_path)
+                if debug: logger.info(f"Deleted physical file: {file_record.file_path}")
             except Exception as e:
-                print(f"⚠️ Failed to delete file: {e}")
-
+                logger.error(f"Failed to delete physical file {file_record.file_path}: {e}")
+        
         # Delete vectors from vectorDB
-        result = UploadService.delete_vectors_by_knowledge_id(str(file_record.id))
+        try:
+            result = UploadService.delete_vectors_by_knowledge_id(str(file_record.id))
+            if debug: logger.info(f"Deleted vectors from vectorDB: {result}")
+        except Exception as e:
+            logger.error(f"Failed to delete vectors from vectorDB: {e}")
         
         # Delete DB record
-        session.delete(file_record)
-        session.commit()
+        try:
+            session.delete(file_record)
+            session.commit()
+            if debug: logger.info(f"Deleted DB record for file_id: {file_id}")
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to delete DB record: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to delete DB record: {e}")
+        
         return {
             "success": True,
             "message": "File knowledge record and associated file deleted",
             "file_id": file_id,
             "deleted_by": str(current_admin.id)
         }
-        
+    
+    except HTTPException as e:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Unexpected error deleting file_id {file_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+    finally:
+        session.close()
+        if debug: logger.info("Session closed.")
+
+# delete text by id
+@router.delete("/text/{text_id}")
+async def delete_text_knowledge(
+    text_id: str,
+    current_admin: Admin = Depends(require_admin_or_above)
+):
+    """
+    Delete a text knowledge record by ID:
+      - Remove record from DB
+      - Delete associated vector embeddings
+    """
+    session = Config.get_session()
+
+    try:
+        # Validate UUID
+        try:
+            t_id = UUID(text_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid text_id format")
+
+        # Fetch record
+        text_record = session.query(TextKnowledge).filter(TextKnowledge.id == t_id).first()
+        if not text_record:
+            raise HTTPException(status_code=404, detail="Text knowledge record not found")
+
+        # Delete associated vectors
+        vec_result = UploadService.delete_vectors_by_knowledge_id(str(text_record.id))
+
+        # Delete DB record
+        session.delete(text_record)
+        session.commit()
+
+        return {
+            "success": True,
+            "message": "Text knowledge deleted successfully",
+            "vector_deleted": vec_result
+        }
+
     except HTTPException:
         session.rollback()
         raise
@@ -365,7 +434,6 @@ async def delete_file(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         session.close()
-
 
 @router.put("/text/{text_id}")
 async def edit_text_knowledge(
