@@ -100,17 +100,20 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
 
         # Prepare DataFrame
         df.sort_values("timestamp", inplace=True)
-        df.set_index("timestamp", inplace=True)
-
-        # Weighted average function
-        def weighted_avg(x):
-            total_count = x['requests_count'].sum()
+        df.set_index("timestamp", inplace=True)        # Weighted average function
+        def weighted_avg(group):
+            if group.empty:
+                return None
+            total_count = group['requests_count'].sum()
             if total_count == 0:
                 return None
-            return (x['avg_response_time'] * x['requests_count']).sum() / total_count
+            weighted_sum = (group['avg_response_time'] * group['requests_count']).sum()
+            return weighted_sum / total_count
 
-        # Resample and compute weighted average
-        resampled = df.resample(INTERVALS_MAP[interval]).apply(weighted_avg)
+        # Resample and compute weighted average - use agg instead of apply
+        resampled = df.resample(INTERVALS_MAP[interval]).agg({
+            'avg_response_time': weighted_avg
+        })
 
         # Ensure exactly n points
         last_n_index = pd.date_range(
@@ -118,12 +121,14 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
             periods=n,
             freq=INTERVALS_MAP[interval]
         )
-        resampled = resampled.reindex(last_n_index).fillna(None)
+        
+        # Reindex with proper handling of the Series
+        resampled_series = resampled['avg_response_time'].reindex(last_n_index, fill_value=None)
 
         # Convert to list of dicts
         result = [
             {"timestamp": ts.isoformat(), "avg_response_time": avg}
-            for ts, avg in zip(resampled.index, resampled.iloc[:, 0])
+            for ts, avg in resampled_series.items()
         ]
 
         return result
