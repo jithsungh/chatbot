@@ -71,6 +71,7 @@ interface ResponseTimeData {
   data: Array<{
     timestamp: string;
     avg_response_time: number;
+    requests_count: number;
   }>;
 }
 
@@ -664,8 +665,7 @@ const Dashboard = () => {
                       <YAxis
                         className="text-xs text-muted-foreground"
                         tickFormatter={(value) => formatResponseTime(value)}
-                      />
-                      <ChartTooltip
+                      />                      <ChartTooltip
                         content={
                           <ChartTooltipContent
                             labelFormatter={(value, payload) => {
@@ -676,10 +676,22 @@ const Dashboard = () => {
                               }
                               return value;
                             }}
-                            formatter={(value, name) => [
-                              formatResponseTime(value as number),
-                              "Response Time",
-                            ]}
+                            formatter={(value, name, props) => {
+                              if (name === "avg_response_time") {
+                                const requestCount = props?.payload?.requests_count || 0;
+                                return [
+                                  <>
+                                    <div  className="text-xs text-muted-foreground">
+                                      Response Time: {formatResponseTime(value as number)}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Requests: {requestCount}
+                                    </div>
+                                  </>,
+                                ];
+                              }
+                              return [value, name];
+                            }}
                           />
                         }
                       />
@@ -715,9 +727,211 @@ const Dashboard = () => {
                 </Button>
               </div>
             </div>
+          )}{" "}        </CardContent>
+      </Card>
+      
+      {/* Request Count Graph */}
+      <Card className="card-hover">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="w-5 h-5 text-primary" />
+                <span>Request Count Graph</span>
+              </CardTitle>
+              <CardDescription>
+                Number of requests over time
+              </CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Select value={timeInterval} onValueChange={setTimeInterval}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1min">1 minute</SelectItem>
+                  <SelectItem value="5min">5 minutes</SelectItem>
+                  <SelectItem value="10min">10 minutes</SelectItem>
+                  <SelectItem value="30min">30 minutes</SelectItem>
+                  <SelectItem value="1h">1 hour</SelectItem>
+                  <SelectItem value="3h">3 hours</SelectItem>
+                  <SelectItem value="6h">6 hours</SelectItem>
+                  <SelectItem value="12h">12 hours</SelectItem>
+                  <SelectItem value="24h">24 hours</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={dataPoints.toString()}
+                onValueChange={(val) => setDataPoints(Number(val))}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                {refreshing ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {responseTimeData &&
+          responseTimeData.data &&
+          responseTimeData.data.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-4">
+                  <Badge
+                    variant="outline"
+                    className="bg-primary/10 text-primary border-primary/20"
+                  >
+                    Total Requests:{" "}
+                    {responseTimeData.data.reduce(
+                      (sum, item) => sum + item.requests_count,
+                      0
+                    )}
+                  </Badge>
+                  <Badge variant="outline" className="bg-secondary">
+                    Data Points: {responseTimeData.n}
+                  </Badge>
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        autoRefresh ? "bg-success animate-pulse" : "bg-muted"
+                      }`}
+                    ></div>
+                    <span className="text-xs text-muted-foreground">
+                      {autoRefresh
+                        ? "Auto-refresh: 1 min"
+                        : "Auto-refresh: Off"}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  className="h-6 px-2 text-xs"
+                >
+                  {autoRefresh ? "Turn Off" : "Turn On"} Auto-refresh
+                </Button>
+              </div>
+
+              <div className="h-64">
+                <ChartContainer
+                  config={{
+                    requests_count: {
+                      label: "Request Count",
+                      color: "hsl(var(--chart-2))",
+                    },
+                  }}
+                  className="h-full w-full"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={responseTimeData.data.map((item) => ({
+                        ...item,
+                        formattedTime: new Date(
+                          item.timestamp
+                        ).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          ...(timeInterval === "daily"
+                            ? {}
+                            : {
+                                month: "short",
+                                day: "numeric",
+                              }),
+                        }),
+                      }))}
+                      margin={{
+                        top: 5,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="stroke-muted"
+                      />
+                      <XAxis
+                        dataKey="formattedTime"
+                        className="text-xs text-muted-foreground"
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        className="text-xs text-muted-foreground"
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            labelFormatter={(value, payload) => {
+                              if (payload && payload[0]) {
+                                return new Date(
+                                  payload[0].payload.timestamp
+                                ).toLocaleString();
+                              }
+                              return value;
+                            }}
+                            formatter={(value, name) => [
+                              value,
+                              "Requests",
+                            ]}
+                          />
+                        }
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="requests_count"
+                        stroke="hsl(var(--chart-2))"
+                        strokeWidth={2}
+                        dot={{
+                          fill: "hsl(var(--chart-2))",
+                          strokeWidth: 2,
+                          r: 4,
+                        }}
+                        activeDot={{
+                          r: 6,
+                          stroke: "hsl(var(--chart-2))",
+                          strokeWidth: 2,
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+              <div className="text-center space-y-2">
+                <Activity className="w-8 h-8 mx-auto opacity-50" />
+                <p>No request count data available</p>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Data
+                </Button>
+              </div>
+            </div>
           )}{" "}
         </CardContent>
       </Card>
+      
       {/* Database Management */}
       <DatabaseManagement /> {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

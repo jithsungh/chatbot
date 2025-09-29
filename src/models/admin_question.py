@@ -25,6 +25,7 @@ class AdminQuestion(Base):
     frequency = Column(Integer, default=1)
     vectordbid = Column(UUID(as_uuid=True), nullable=True)
     createdat = Column(TIMESTAMP(timezone=True), server_default=func.now(), name='createdat')
+    notes = Column(Text, nullable=True)
 
     # Class methods for querying
     @classmethod

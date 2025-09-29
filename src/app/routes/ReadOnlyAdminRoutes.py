@@ -296,6 +296,7 @@ async def get_admin_questions(
                 "admin_name": admin_name,
                 "question": q.question,
                 "answer": q.answer if q.answer else None,
+                "acceptance": q.notes if q.notes else None,
                 "department": q.dept.value if q.dept else None,
                 "status": q.status.value if q.status else None,
                 "frequency": q.frequency,
@@ -304,7 +305,8 @@ async def get_admin_questions(
             })
         
         return {
-            "questions": result,            "total": total_count,
+            "questions": result,            
+            "total": total_count,
             "limit": limit,
             "offset": offset,
             "requested_by": str(current_admin.id)

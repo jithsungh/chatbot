@@ -11,7 +11,8 @@ import hashlib
 import logging
 
 from src.config import Config
-from src.models.admin import Admin
+from src.models.admin import Admin, AdminRole
+
 from uuid import UUID
 
 class TokenData:
@@ -268,6 +269,7 @@ async def resend_verification_email(
 async def create_admin_manual(
     name: str = Body(...),
     email: str = Body(...),
+    role: str = Body(...),
     password: str = Body(...),
     bypass_key: str = Body(..., embed=True)
 ):
@@ -278,6 +280,10 @@ async def create_admin_manual(
     if len(password) < 4: # change in production to 8
         raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
     
+    if role and role not in [r.value for r in AdminRole]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    
+    role = AdminRole(role) if role else AdminRole.admin
     session = Config.get_session()
     try:
         existing_admin = Admin.get_by_email(session, email)
@@ -290,6 +296,7 @@ async def create_admin_manual(
             session=session,
             name=name,
             email=email,
+            role=role,
             password=hashed_password,
             enabled=True,
             verification_token=None  # No verification needed

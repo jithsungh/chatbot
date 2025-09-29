@@ -304,14 +304,13 @@ export class ApiClient {
       {
         headers: this.getAuthHeaders(),
       }
-    );
-
-    return this.handleResponse<{
+    );    return this.handleResponse<{
       interval?: string;
       n: number;
       data: Array<{
         timestamp: string;
         avg_response_time: number;
+        requests_count: number;
       }>;
     }>(response);
   }
