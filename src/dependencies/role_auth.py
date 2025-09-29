@@ -63,7 +63,7 @@ def require_roles(allowed_roles: List[AdminRole]):
 # Convenience dependencies for specific roles
 async def require_super_admin(current_admin: Admin = Depends(get_current_admin)) -> Admin:
     """Require super_admin role"""
-    if current_admin.role != AdminRole.superadmin:
+    if current_admin.role != AdminRole.super_admin:
         raise HTTPException(
             status_code=403,
             detail=f"Access denied. Super admin role required. Your role: {current_admin.role.value}"
@@ -72,7 +72,7 @@ async def require_super_admin(current_admin: Admin = Depends(get_current_admin))
 
 async def require_admin_or_above(current_admin: Admin = Depends(get_current_admin)) -> Admin:
     """Require admin or super_admin role"""
-    if current_admin.role not in [AdminRole.admin, AdminRole.superadmin]:
+    if current_admin.role not in [AdminRole.admin, AdminRole.super_admin]:
         raise HTTPException(
             status_code=403,
             detail=f"Access denied. Admin or super admin role required. Your role: {current_admin.role.value}"
@@ -81,7 +81,7 @@ async def require_admin_or_above(current_admin: Admin = Depends(get_current_admi
 
 async def require_read_only_or_above(current_admin: Admin = Depends(get_current_admin)) -> Admin:
     """Require read_only, admin, or super_admin role (basically any authenticated admin)"""
-    if current_admin.role not in [AdminRole.read_only, AdminRole.admin, AdminRole.superadmin]:
+    if current_admin.role not in [AdminRole.read_only, AdminRole.admin, AdminRole.super_admin]:
         raise HTTPException(
             status_code=403,
             detail=f"Access denied. Valid admin role required. Your role: {current_admin.role.value}"

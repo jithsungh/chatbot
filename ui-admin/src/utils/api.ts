@@ -178,7 +178,7 @@ export class ApiClient {
     params: {
       dept?: string;
       admin?: string;
-      sort_by?: string;
+      sort_by?: boolean;
       limit?: number;
       offset?: number;
     } = {}
@@ -186,7 +186,8 @@ export class ApiClient {
     const searchParams = new URLSearchParams();
     if (params.dept) searchParams.append("dept", params.dept);
     if (params.admin) searchParams.append("admin", params.admin);
-    if (params.sort_by) searchParams.append("sort_by", params.sort_by);
+    if (params.sort_by !== undefined)
+      searchParams.append("sort_by", params.sort_by.toString());
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
 

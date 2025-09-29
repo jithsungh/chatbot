@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 from .base import Base
 
 class AdminRole(enum.Enum):
-    superadmin = "super_admin"
+    super_admin = "super_admin"
     admin = "admin"
     read_only = "read_only"
 
