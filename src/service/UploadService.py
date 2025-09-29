@@ -51,9 +51,10 @@ async def upload_file(file, dept, file_uuid):
     
 
 def delete_vectors_by_knowledge_id(knowledge_id: str):
+    global chroma_collection   # ✅ tell Python to use the global variable
+    
     if chroma_collection is None:
         chroma_collection = get_collection()
-
 
     if not chroma_collection:
         return {"error": "Vector database chroma_collection not initialized"}
