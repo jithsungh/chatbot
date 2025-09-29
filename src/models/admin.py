@@ -23,7 +23,9 @@ class Admin(Base):
     role = Column(Enum(AdminRole), default=AdminRole.admin)
     verification_token = Column(Text, nullable=True)
     last_login = Column(TIMESTAMP(timezone=True), nullable=True)
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())    @classmethod
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    
+    @classmethod
     def create(cls, session, name, email, password, enabled=False, verification_token=None):
         """Create a new admin"""
         new_admin = cls(
