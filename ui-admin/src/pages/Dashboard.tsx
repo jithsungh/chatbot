@@ -133,7 +133,7 @@ const Dashboard = () => {
       if (stats) {
         // Only refresh response time data to avoid full page reload
         apiClient
-          .getAvgResponseTimes(timeInterval, 24)
+          .getAvgResponseTimes(timeInterval, dataPoints)
           .then(setResponseTimeData)
           .catch(console.error);
       }
@@ -665,7 +665,8 @@ const Dashboard = () => {
                       <YAxis
                         className="text-xs text-muted-foreground"
                         tickFormatter={(value) => formatResponseTime(value)}
-                      />                      <ChartTooltip
+                      />{" "}
+                      <ChartTooltip
                         content={
                           <ChartTooltipContent
                             labelFormatter={(value, payload) => {
@@ -678,11 +679,13 @@ const Dashboard = () => {
                             }}
                             formatter={(value, name, props) => {
                               if (name === "avg_response_time") {
-                                const requestCount = props?.payload?.requests_count || 0;
+                                const requestCount =
+                                  props?.payload?.requests_count || 0;
                                 return [
                                   <>
-                                    <div  className="text-xs text-muted-foreground">
-                                      Response Time: {formatResponseTime(value as number)}
+                                    <div className="text-xs text-muted-foreground">
+                                      Response Time:{" "}
+                                      {formatResponseTime(value as number)}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                       Requests: {requestCount}
@@ -727,9 +730,9 @@ const Dashboard = () => {
                 </Button>
               </div>
             </div>
-          )}{" "}        </CardContent>
+          )}{" "}
+        </CardContent>
       </Card>
-      
       {/* Request Count Graph */}
       <Card className="card-hover">
         <CardHeader>
@@ -739,9 +742,7 @@ const Dashboard = () => {
                 <Activity className="w-5 h-5 text-primary" />
                 <span>Request Count Graph</span>
               </CardTitle>
-              <CardDescription>
-                Number of requests over time
-              </CardDescription>
+              <CardDescription>Number of requests over time</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Select value={timeInterval} onValueChange={setTimeInterval}>
@@ -875,9 +876,7 @@ const Dashboard = () => {
                         className="text-xs text-muted-foreground"
                         interval="preserveStartEnd"
                       />
-                      <YAxis
-                        className="text-xs text-muted-foreground"
-                      />
+                      <YAxis className="text-xs text-muted-foreground" />
                       <ChartTooltip
                         content={
                           <ChartTooltipContent
@@ -889,10 +888,7 @@ const Dashboard = () => {
                               }
                               return value;
                             }}
-                            formatter={(value, name) => [
-                              value,
-                              "Requests",
-                            ]}
+                            formatter={(value, name) => [value, "Requests"]}
                           />
                         }
                       />
@@ -931,7 +927,6 @@ const Dashboard = () => {
           )}{" "}
         </CardContent>
       </Card>
-      
       {/* Database Management */}
       <DatabaseManagement /> {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -11,7 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import Queries from "./pages/Queries";
 import Questions from "./pages/Questions";
-import DatabasePage from "./pages/DatabasePage";
+import AdminPage from "./pages/DatabasePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +37,7 @@ const App = () => (
               <Route path="upload" element={<Upload />} />
               <Route path="queries" element={<Queries />} />
               <Route path="questions" element={<Questions />} />
-              <Route path="database" element={<DatabasePage />} />
+              <Route path="admin" element={<AdminPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

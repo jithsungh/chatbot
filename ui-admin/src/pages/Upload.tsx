@@ -121,29 +121,70 @@ const Upload = () => {
   useEffect(() => {
     fetchUploadedData();
   }, []);
-
-  // Refetch data when sort order changes
+  // Refetch data when filters or sort order changes
   useEffect(() => {
-    if (uploadedFiles.length > 0 || textKnowledge.length > 0) {
-      fetchUploadedData();
-    }
-  }, [fileSortBy, textSortBy]);
+    fetchUploadedData();
+  }, [
+    fileSortBy,
+    textSortBy,
+    fileFilter,
+    textFilter,
+    fileDeptFilter,
+    textDeptFilter,
+  ]);
   const fetchUploadedData = async () => {
     setLoading(true);
     try {
       const [filesResponse, textResponse] = await Promise.all([
         apiClient.getUploadedFiles({
           limit: 100,
-          sort_by: fileSortBy, // true = latest first (descending)
+          sort_by: fileSortBy ? "desc" : "asc", // convert boolean to string
+          admin: fileFilter === "mine" ? "self" : undefined,
+          dept:
+            fileDeptFilter && fileDeptFilter !== "all"
+              ? fileDeptFilter
+              : undefined,
         }),
         apiClient.getTextKnowledge({
           limit: 100,
           sort_by: textSortBy, // true = latest first (descending)
+          adminid: textFilter === "mine" ? "self" : undefined,
+          dept:
+            textDeptFilter && textDeptFilter !== "all"
+              ? textDeptFilter
+              : undefined,
         }),
       ]);
 
-      setUploadedFiles(filesResponse.files || []);
-      setTextKnowledge(textResponse.text_knowledge || []);
+      // Map the API response to match the component interface
+      const mappedFiles = (filesResponse.records || []).map((record) => ({
+        id: record.id,
+        filename: record.file_name,
+        original_filename: record.file_name,
+        file_size: 0, // Not provided in new API
+        file_type: "", // Not provided in new API
+        department: record.dept,
+        uploaded_by: record.adminid,
+        uploaded_by_name: record.admin_name,
+        created_at: record.createdat,
+        processing_status: "success", // Assume success if not provided
+        download_url: record.file_url,
+      }));
+
+      const mappedTexts = (textResponse.records || []).map((record) => ({
+        id: record.id,
+        title: record.title,
+        text: record.text,
+        department: record.dept,
+        uploaded_by: record.adminid,
+        uploaded_by_name: record.admin_name,
+        created_at: record.createdat,
+        updated_at: record.createdat, // Use createdat as fallback
+        chunk_count: 0, // Not provided in new API
+      }));
+
+      setUploadedFiles(mappedFiles);
+      setTextKnowledge(mappedTexts);
     } catch (error) {
       console.error("Failed to fetch uploaded data:", error);
       toast({
@@ -324,79 +365,28 @@ const Upload = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-  // Filter and sort functions
-  const filteredAndSortedFiles = uploadedFiles
-    .filter((file) => {
-      // Filter by owner
-      if (fileFilter === "mine" && file.uploaded_by !== currentUser.id)
-        return false;
+  }; // Filter and sort functions
+  const filteredAndSortedFiles = uploadedFiles.filter((file) => {
+    // Filter by search (client-side filtering for search)
+    if (
+      fileSearch &&
+      !file.original_filename.toLowerCase().includes(fileSearch.toLowerCase())
+    )
+      return false;
 
-      // Filter by department
-      if (
-        fileDeptFilter &&
-        fileDeptFilter !== "all" &&
-        file.department !== fileDeptFilter
-      )
-        return false;
+    return true;
+  });
 
-      // Filter by search
-      if (
-        fileSearch &&
-        !file.original_filename.toLowerCase().includes(fileSearch.toLowerCase())
-      )
-        return false;
+  const filteredAndSortedTexts = textKnowledge.filter((text) => {
+    // Filter by search (client-side filtering for search)
+    if (
+      textSearch &&
+      !text.title.toLowerCase().includes(textSearch.toLowerCase())
+    )
+      return false;
 
-      return true;
-    })
-    .sort((a, b) => {
-      // true = latest first (descending), false = oldest first (ascending)
-      if (fileSortBy) {
-        return (
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      } else {
-        return (
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-      }
-    });
-
-  const filteredAndSortedTexts = textKnowledge
-    .filter((text) => {
-      // Filter by owner
-      if (textFilter === "mine" && text.uploaded_by !== currentUser.id)
-        return false;
-
-      // Filter by department
-      if (
-        textDeptFilter &&
-        textDeptFilter !== "all" &&
-        text.department !== textDeptFilter
-      )
-        return false;
-
-      // Filter by search
-      if (
-        textSearch &&
-        !text.title.toLowerCase().includes(textSearch.toLowerCase())
-      )
-        return false;
-
-      return true;
-    })
-    .sort((a, b) => {
-      // true = latest first (descending), false = oldest first (ascending)
-      if (textSortBy) {
-        return (
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      } else {
-        return (
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-      }
-    });
+    return true;
+  });
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -676,12 +666,11 @@ const Upload = () => {
                           <span className="flex items-center space-x-1">
                             <User className="w-3 h-3" />
                             <span>{file.uploaded_by_name}</span>
-                          </span>
+                          </span>{" "}
                           <span className="flex items-center space-x-1">
                             <Calendar className="w-3 h-3" />
                             <span>{formatDate(file.created_at)}</span>
                           </span>
-                          <span>{formatFileSize(file.file_size)}</span>
                         </div>
                       </div>
                       <div className="flex space-x-2 flex-shrink-0">
@@ -853,12 +842,11 @@ const Upload = () => {
                             <span className="flex items-center space-x-1">
                               <User className="w-3 h-3" />
                               <span>{text.uploaded_by_name}</span>
-                            </span>
+                            </span>{" "}
                             <span className="flex items-center space-x-1">
                               <Calendar className="w-3 h-3" />
                               <span>{formatDate(text.created_at)}</span>
                             </span>
-                            <span>{text.chunk_count} chunks</span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
                             {text.text}

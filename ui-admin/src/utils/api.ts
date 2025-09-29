@@ -139,7 +139,6 @@ export class ApiClient {
 
     return this.handleResponse<{ response: string }>(response);
   }
-
   // Upload endpoints
   async uploadFiles(files: FileList, department: string, concurrentLimit = 3) {
     const formData = new FormData();
@@ -148,7 +147,7 @@ export class ApiClient {
     });
 
     const response = await fetch(
-      `${API_BASE_URL}/api/admin/upload/files/batch/${department}?concurrent_limit=${concurrentLimit}`,
+      `${API_BASE_URL}/api/admin/upload/files/${department}?concurrent_limit=${concurrentLimit}`,
       {
         method: "POST",
         headers: this.getAuthHeaders(),
@@ -178,7 +177,7 @@ export class ApiClient {
     params: {
       dept?: string;
       admin?: string;
-      sort_by?: boolean;
+      sort_by?: string;
       limit?: number;
       offset?: number;
     } = {}
@@ -186,39 +185,32 @@ export class ApiClient {
     const searchParams = new URLSearchParams();
     if (params.dept) searchParams.append("dept", params.dept);
     if (params.admin) searchParams.append("admin", params.admin);
-    if (params.sort_by !== undefined)
-      searchParams.append("sort_by", params.sort_by.toString());
+    if (params.sort_by) searchParams.append("sort_by", params.sort_by);
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
 
     const response = await fetch(
-      `${API_BASE_URL}/api/read/upload/list?${searchParams.toString()}`,
+      `${API_BASE_URL}/api/admin/upload/list?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }
     );
 
     return this.handleResponse<{
-      files: Array<{
+      records: Array<{
         id: string;
-        filename: string;
-        original_filename: string;
-        file_size: number;
-        file_type: string;
-        department: string;
-        uploaded_by: string;
-        uploaded_by_name: string;
-        created_at: string;
-        processing_status: string;
-        download_url: string;
+        adminid: string;
+        admin_name: string;
+        file_name: string;
+        file_path: string;
+        file_url: string;
+        dept: string;
+        createdat: string;
       }>;
-      total_count: number;
-      total_size: number;
-      page_info: {
-        limit: number;
-        offset: number;
-        has_more: boolean;
-      };
+      total: number;
+      limit: number;
+      offset: number;
+      requested_by: string;
     }>(response);
   }
   async getTextKnowledge(
@@ -239,30 +231,26 @@ export class ApiClient {
     if (params.offset) searchParams.append("offset", params.offset.toString());
 
     const response = await fetch(
-      `${API_BASE_URL}/api/read/upload/text?${searchParams.toString()}`,
+      `${API_BASE_URL}/api/admin/upload/text?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }
     );
 
     return this.handleResponse<{
-      text_knowledge: Array<{
+      records: Array<{
         id: string;
+        adminid: string;
+        admin_name: string;
         title: string;
         text: string;
-        department: string;
-        uploaded_by: string;
-        uploaded_by_name: string;
-        created_at: string;
-        updated_at: string;
-        chunk_count: number;
+        dept: string;
+        createdat: string;
       }>;
-      total_count: number;
-      page_info: {
-        limit: number;
-        offset: number;
-        has_more: boolean;
-      };
+      total: number;
+      limit: number;
+      offset: number;
+      requested_by: string;
     }>(response);
   } // Dashboard stats
   async getDashboardStats() {
@@ -304,7 +292,8 @@ export class ApiClient {
       {
         headers: this.getAuthHeaders(),
       }
-    );    return this.handleResponse<{
+    );
+    return this.handleResponse<{
       interval?: string;
       n: number;
       data: Array<{
@@ -755,7 +744,6 @@ export class ApiClient {
 
     return this.handleResponse(response);
   }
-
   async resetAdminPassword(adminId: string, newPassword: string) {
     const response = await fetch(
       `${API_BASE_URL}/api/superadmin/admin/resetpassword/${adminId}`,
@@ -765,7 +753,110 @@ export class ApiClient {
           ...this.getAuthHeaders(),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newPassword),
+        body: JSON.stringify({ new_password: newPassword }),
+      }
+    );
+
+    return this.handleResponse(response);
+  }
+
+  // Super admin database deletion endpoints
+  async deleteAllFiles() {
+    const response = await fetch(`${API_BASE_URL}/api/superadmin/files/all`, {
+      method: "DELETE",
+      headers: {
+        ...this.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        confirmation: "DELETE_ALL_FILES",
+      }),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteAllTextKnowledge() {
+    const response = await fetch(`${API_BASE_URL}/api/superadmin/text/all`, {
+      method: "DELETE",
+      headers: {
+        ...this.getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        confirmation: "DELETE_ALL_TEXT",
+      }),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteAllUserQuestions() {
+    const response = await fetch(
+      `${API_BASE_URL}/api/superadmin/user-questions/all`,
+      {
+        method: "DELETE",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirmation: "DELETE_ALL_USER_QUESTIONS",
+        }),
+      }
+    );
+
+    return this.handleResponse(response);
+  }
+
+  async deleteAllAdminQuestions() {
+    const response = await fetch(
+      `${API_BASE_URL}/api/superadmin/admin-questions/all`,
+      {
+        method: "DELETE",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirmation: "DELETE_ALL_ADMIN_QUESTIONS",
+        }),
+      }
+    );
+
+    return this.handleResponse(response);
+  }
+
+  async deleteAllDeptFailures() {
+    const response = await fetch(
+      `${API_BASE_URL}/api/superadmin/dept-failures/all`,
+      {
+        method: "DELETE",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirmation: "DELETE_ALL_DEPT_FAILURES",
+        }),
+      }
+    );
+
+    return this.handleResponse(response);
+  }
+
+  async deleteAllResponseTimes() {
+    const response = await fetch(
+      `${API_BASE_URL}/api/superadmin/response-times/all`,
+      {
+        method: "DELETE",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirmation: "DELETE_ALL_RESPONSE_TIMES",
+        }),
       }
     );
 

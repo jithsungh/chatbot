@@ -1,35 +1,46 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Bot, Upload, MessageSquare, HelpCircle, User, LogOut, MessageCircle, Database } from 'lucide-react';
-import LogoutDialog from '@/components/dialogs/LogoutDialog';
+} from "@/components/ui/dropdown-menu";
+import {
+  Bot,
+  Upload,
+  MessageSquare,
+  HelpCircle,
+  User,
+  LogOut,
+  MessageCircle,
+  Database,
+} from "lucide-react";
+import LogoutDialog from "@/components/dialogs/LogoutDialog";
 
 const Navbar = () => {
   const { admin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: Bot },
-    { path: '/upload', label: 'Upload', icon: Upload },
-    { path: '/queries', label: 'Queries', icon: MessageSquare },
-    { path: '/questions', label: 'Questions', icon: HelpCircle },
-    { path: '/database', label: 'Database', icon: Database },
+    { path: "/", label: "Dashboard", icon: Bot },
+    { path: "/upload", label: "Upload", icon: Upload },
+    { path: "/queries", label: "Queries", icon: MessageSquare },
+    { path: "/questions", label: "Questions", icon: HelpCircle },
+    // Only show Admin panel for super admins
+    ...(admin?.role === "super_admin"
+      ? [{ path: "/admin", label: "Admin", icon: Database }]
+      : []),
   ];
 
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
+    if (path === "/") {
+      return location.pathname === "/";
     }
     return location.pathname.startsWith(path);
   };
@@ -37,7 +48,7 @@ const Navbar = () => {
   const handleLogout = () => {
     setShowLogoutDialog(false);
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -65,9 +76,9 @@ const Navbar = () => {
                     variant={isActive(path) ? "default" : "ghost"}
                     size="sm"
                     className={`flex items-center space-x-2 transition-smooth ${
-                      isActive(path) 
-                        ? 'gradient-primary text-white shadow-md' 
-                        : 'hover:bg-secondary text-foreground'
+                      isActive(path)
+                        ? "gradient-primary text-white shadow-md"
+                        : "hover:bg-secondary text-foreground"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -85,7 +96,7 @@ const Navbar = () => {
                 className="hidden md:flex items-center space-x-2 hover:gradient-accent hover:text-white transition-smooth"
                 onClick={() => {
                   // Trigger chatbot opening
-                  window.dispatchEvent(new CustomEvent('toggleChatbot'));
+                  window.dispatchEvent(new CustomEvent("toggleChatbot"));
                 }}
               >
                 <MessageCircle className="w-4 h-4" />
@@ -94,23 +105,28 @@ const Navbar = () => {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className="relative h-10 w-10 rounded-full"
+                  >
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="gradient-secondary text-foreground font-semibold">
-                        {admin?.name?.charAt(0).toUpperCase() || 'A'}
+                        {admin?.name?.charAt(0).toUpperCase() || "A"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex flex-col space-y-1 p-2">
-                    <p className="text-sm font-medium leading-none">{admin?.name}</p>
+                    <p className="text-sm font-medium leading-none">
+                      {admin?.name}
+                    </p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {admin?.email}
                     </p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="cursor-pointer hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => setShowLogoutDialog(true)}
                   >
@@ -130,9 +146,9 @@ const Navbar = () => {
                   variant={isActive(path) ? "default" : "ghost"}
                   size="sm"
                   className={`flex flex-col items-center space-y-1 h-auto py-2 px-3 transition-smooth ${
-                    isActive(path) 
-                      ? 'gradient-primary text-white shadow-md' 
-                      : 'hover:bg-secondary text-foreground'
+                    isActive(path)
+                      ? "gradient-primary text-white shadow-md"
+                      : "hover:bg-secondary text-foreground"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
