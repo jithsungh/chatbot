@@ -190,7 +190,7 @@ export class ApiClient {
     if (params.offset) searchParams.append("offset", params.offset.toString());
 
     const response = await fetch(
-      `${API_BASE_URL}/api/admin/upload/list?${searchParams.toString()}`,
+      `${API_BASE_URL}/api/read/upload/list?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }
@@ -213,6 +213,7 @@ export class ApiClient {
       requested_by: string;
     }>(response);
   }
+
   async getTextKnowledge(
     params: {
       dept?: string;
@@ -231,7 +232,7 @@ export class ApiClient {
     if (params.offset) searchParams.append("offset", params.offset.toString());
 
     const response = await fetch(
-      `${API_BASE_URL}/api/admin/upload/text?${searchParams.toString()}`,
+      `${API_BASE_URL}/api/read/upload/text?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }
@@ -303,13 +304,13 @@ export class ApiClient {
       }>;
     }>(response);
   }
-
   async getUserQuestions(
     params: {
       status?: string;
       dept?: string;
       admin?: string;
-      sort_by?: boolean;
+      sort_by?: string;
+      order?: string;
       limit?: number;
       offset?: number;
     } = {}
@@ -318,8 +319,8 @@ export class ApiClient {
     if (params.status) searchParams.append("status", params.status);
     if (params.dept) searchParams.append("dept", params.dept);
     if (params.admin) searchParams.append("admin", params.admin);
-    if (params.sort_by !== undefined)
-      searchParams.append("sort_by", params.sort_by.toString());
+    if (params.sort_by) searchParams.append("sort_by", params.sort_by);
+    if (params.order) searchParams.append("order", params.order);
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
 
@@ -333,34 +334,30 @@ export class ApiClient {
     const data = await this.handleResponse<{
       questions: Array<{
         id: string;
-        question: string;
-        user_id: string;
+        query: string;
+        answer?: string;
+        context?: string;
         department: string;
         status: string;
-        admin_assigned: string;
-        created_at: string;
-        processed_at?: string;
+        createdAt: string;
       }>;
-      total_count: number;
-      page_info: {
-        limit: number;
-        offset: number;
-        has_more: boolean;
-      };
+      total: number;
+      limit: number;
+      offset: number;
+      requested_by: string;
     }>(response);
 
     return {
       questions: data.questions,
-      total_count: data.total_count,
-      page_info: data.page_info,
+      total_count: data.total,
     };
-  }
-  async getAdminQuestions(
+  }  async getAdminQuestions(
     params: {
       status?: string;
       dept?: string;
       admin?: string;
-      sort_by?: boolean;
+      sort_by?: string;
+      order?: string;
       limit?: number;
       offset?: number;
     } = {}
@@ -369,8 +366,8 @@ export class ApiClient {
     if (params.status) searchParams.append("status", params.status);
     if (params.dept) searchParams.append("dept", params.dept);
     if (params.admin) searchParams.append("admin", params.admin);
-    if (params.sort_by !== undefined)
-      searchParams.append("sort_by", params.sort_by.toString());
+    if (params.sort_by) searchParams.append("sort_by", params.sort_by);
+    if (params.order) searchParams.append("order", params.order);
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
 
@@ -384,29 +381,26 @@ export class ApiClient {
     const data = await this.handleResponse<{
       questions: Array<{
         id: string;
+        adminid: string;
+        admin_name: string;
         question: string;
+        answer?: string;
+        acceptance?: string;
         department: string;
         status: string;
-        priority: string;
-        asked_by: string;
-        assigned_to: string;
-        answer?: string;
-        answered_by?: string;
-        created_at: string;
-        answered_at?: string;
+        frequency?: number;
+        vectordbid?: string;
+        createdAt: string;
       }>;
-      total_count: number;
-      page_info: {
-        limit: number;
-        offset: number;
-        has_more: boolean;
-      };
+      total: number;
+      limit: number;
+      offset: number;
+      requested_by: string;
     }>(response);
 
     return {
       questions: data.questions,
-      total_count: data.total_count,
-      page_info: data.page_info,
+      total_count: data.total,
     };
   }
 
@@ -459,6 +453,40 @@ export class ApiClient {
     );
 
     return this.handleResponse(response);
+  }
+
+  async purgeEntireVectorDb() {
+    const response = await fetch(
+      `${API_BASE_URL}/api/superadmin/purge/vector-db`,
+      {
+        method: "POST",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirmation: "PURGE_ENTIRE_VECTOR_DB",
+        }),
+      }
+    );
+
+    return this.handleResponse<{
+      message: string;
+      purge_details: {
+        deleted_count: number;
+        collections_processed: number;
+        successful_deletions: number;
+        deletion_details: Array<{
+          collection: string;
+          deleted: number;
+        }>;
+      };
+      operation_message: string;
+      errors: any[];
+      purged_by: string;
+      purged_by_name: string;
+      purged_by_email: string;
+    }>(response);
   }
 
   async getPurgeStatus() {
@@ -514,7 +542,6 @@ export class ApiClient {
       >
     >(response);
   }
-
   async getDepartmentDescriptions(deptName?: string) {
     const params = new URLSearchParams();
     if (deptName) params.append("dept_name", deptName);
@@ -526,16 +553,16 @@ export class ApiClient {
       }
     );
 
-    return this.handleResponse<
-      Record<
-        string,
-        {
-          name: string;
-          description: string;
-          updated_at: string;
-        }
-      >
-    >(response);
+    return this.handleResponse<{
+      departments: Array<{
+        id: number;
+        name: string;
+        description: string;
+        created_at: string;
+      }>;
+      total: number;
+      requested_by: string;
+    }>(response);
   }
 
   async addDepartmentKeywords(deptName: string, keywords: string[]) {
@@ -673,12 +700,12 @@ export class ApiClient {
         email: string;
         role: string;
         enabled: boolean;
-        email_verified: boolean;
+        verified: boolean;
         last_login?: string;
         created_at: string;
-        updated_at: string;
       }>;
       total_count: number;
+      requested_by: string;
     }>(response);
   }
 
@@ -700,7 +727,18 @@ export class ApiClient {
       }
     );
 
-    return this.handleResponse(response);
+    return this.handleResponse<{
+      message: string;
+      admin: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        enabled: boolean;
+      };
+      created_by: string;
+      created_by_name: string;
+    }>(response);
   }
 
   async updateAdmin(
@@ -900,6 +938,91 @@ export class ApiClient {
       {
         method: "DELETE",
         headers: this.getAuthHeaders(),
+      }
+    );
+
+    return this.handleResponse(response);
+  }
+
+  // Department failures management
+  async getDepartmentFailures(
+    params: {
+      status?: string;
+      dept?: string;
+      limit?: number;
+      offset?: number;
+      sort_by?: boolean;
+    } = {}
+  ) {
+    const searchParams = new URLSearchParams();
+    if (params.status) searchParams.append("status", params.status);
+    if (params.dept) searchParams.append("dept", params.dept);
+    if (params.limit) searchParams.append("limit", params.limit.toString());
+    if (params.offset) searchParams.append("offset", params.offset.toString());
+    if (params.sort_by !== undefined)
+      searchParams.append("sort_by", params.sort_by.toString());
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/read/departments/failures?${searchParams.toString()}`,
+      {
+        headers: this.getAuthHeaders(),
+      }
+    );
+
+    return this.handleResponse<{
+      failures: Array<{
+        id: string;
+        query: string;
+        answer: string;
+        detected_department: string;
+        expected_department: string;
+        status: string;
+        user_id: string;
+        created_at: string;
+        processed_at?: string;
+        comments?: string;
+      }>;
+      total_count: number;
+      page_info: {
+        limit: number;
+        offset: number;
+        has_more: boolean;
+      };
+    }>(response);
+  }
+
+  async closeDepartmentFailure(failureId: string, comments?: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/admin/departments/failures`,
+      {
+        method: "PUT",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          failure_id: failureId,
+          comments: comments,
+        }),
+      }
+    );
+
+    return this.handleResponse(response);
+  }
+
+  async discardDepartmentFailure(failureId: string, comments?: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/api/admin/departments/failures/discard`,
+      {
+        method: "PUT",
+        headers: {
+          ...this.getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          failure_id: failureId,
+          comments: comments,
+        }),
       }
     );
 

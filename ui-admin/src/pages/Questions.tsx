@@ -51,7 +51,8 @@ import {
 
 interface Question {
   id: string;
-  question: string;
+  query?: string; // For user questions
+  question?: string; // For admin questions
   user_id?: string;
   admin_id?: string;
   adminid?: string;
@@ -66,7 +67,8 @@ interface Question {
   acceptance?: string;
   frequency?: number;
   vectordbid?: string;
-  created_at: string;
+  created_at?: string;
+  createdAt?: string;
   answer?: string;
   answered_at?: string;
   processed_at?: string;
@@ -175,7 +177,9 @@ const QuestionPopup: React.FC<QuestionPopupProps> = ({
               <CardTitle className="text-base">Question</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm whitespace-pre-wrap">{question.question}</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {question.query || question.question}
+              </p>
             </CardContent>
           </Card>
 
@@ -230,7 +234,11 @@ const QuestionPopup: React.FC<QuestionPopupProps> = ({
               </div>
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span>{new Date(question.created_at).toLocaleString()}</span>
+                <span>
+                  {new Date(
+                    question.created_at || question.createdAt || ""
+                  ).toLocaleString()}
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <Badge variant="outline" className="text-xs">
@@ -277,7 +285,7 @@ const QuestionPopup: React.FC<QuestionPopupProps> = ({
               onClick={() => {
                 window.dispatchEvent(
                   new CustomEvent("setChatbotQuestion", {
-                    detail: { question: question.question },
+                    detail: { question: question.query || question.question },
                   })
                 );
                 toast({
@@ -337,7 +345,6 @@ const Questions = () => {
     sortOrder,
     currentPage,
   ]);
-
   const fetchQuestions = async () => {
     setLoading(true);
     try {
@@ -353,7 +360,8 @@ const Questions = () => {
               dept: filterDept && filterDept !== "all" ? filterDept : undefined,
               admin:
                 filterAdmin && filterAdmin !== "all" ? filterAdmin : undefined,
-              sort_by: sortOrder === "desc",
+              sort_by: sortBy === "date" ? "createdAt" : sortBy,
+              order: sortOrder,
               limit: pageSize,
               offset,
             })
@@ -365,7 +373,8 @@ const Questions = () => {
               dept: filterDept && filterDept !== "all" ? filterDept : undefined,
               admin:
                 filterAdmin && filterAdmin !== "all" ? filterAdmin : undefined,
-              sort_by: sortOrder === "desc",
+              sort_by: sortBy === "date" ? "createdAt" : sortBy,
+              order: sortOrder,
               limit: pageSize,
               offset,
             });
@@ -527,9 +536,9 @@ const Questions = () => {
                   {question.frequency}x
                 </Badge>
               )}
-            </div>
+            </div>{" "}
             <p className="text-sm font-medium mb-2 line-clamp-2">
-              {question.question}
+              {question.query || question.question}
             </p>
             {question.answer && (
               <div className="bg-success/10 p-3 rounded-md mb-3">
@@ -551,9 +560,11 @@ const Questions = () => {
                 </span>
               </div>
               <div className="flex items-center space-x-1">
-                <Calendar className="w-3 h-3" />
+                <Calendar className="w-3 h-3" />{" "}
                 <span>
-                  {new Date(question.created_at).toLocaleDateString()}
+                  {new Date(
+                    question.created_at || question.createdAt || ""
+                  ).toLocaleDateString()}
                 </span>
               </div>
               <Badge variant="outline" className="text-xs">
@@ -587,7 +598,7 @@ const Questions = () => {
             variant="outline"
             onClick={(e) => {
               e.stopPropagation();
-              handleTestInChat(question.question);
+              handleTestInChat(question.query || question.question || "");
             }}
             className="text-xs"
           >
@@ -778,7 +789,7 @@ const Questions = () => {
                 <SelectItem value="dept">Sort by Department</SelectItem>
                 <SelectItem value="status">Sort by Status</SelectItem>
                 {questionType === "admin" && (
-                  <SelectItem value="priority">Sort by Priority</SelectItem>
+                  <SelectItem value="frequency">Sort by frequency</SelectItem>
                 )}
               </SelectContent>
             </Select>

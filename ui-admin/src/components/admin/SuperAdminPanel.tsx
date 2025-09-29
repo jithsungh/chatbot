@@ -47,6 +47,7 @@ import {
   XCircle,
   Settings,
   UserCog,
+  Activity,
 } from "lucide-react";
 
 interface Admin {
@@ -55,18 +56,21 @@ interface Admin {
   email: string;
   role: string;
   enabled: boolean;
-  email_verified: boolean;
+  verified: boolean;
   last_login?: string;
   created_at: string;
-  updated_at: string;
 }
 
-interface PurgeStatus {
-  total_files: number;
-  total_text_records: number;
+interface DashboardStats {
   total_user_questions: number;
   total_admin_questions: number;
-  vector_db_status: string;
+  total_text_knowledge: number;
+  total_file_knowledge: number;
+  pending_questions: number;
+  processed_questions: number;
+  avg_response_time: number;
+  active_users: number;
+  requested_by: string;
 }
 
 interface DatabaseDeleteDialogProps {
@@ -77,6 +81,7 @@ interface DatabaseDeleteDialogProps {
     | "admin-questions"
     | "dept-failures"
     | "response-times"
+    | "vector-db"
     | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -108,6 +113,8 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
   onConfirm,
   loading,
 }) => {
+  const [confirmationText, setConfirmationText] = useState("");
+
   const getDialogContent = () => {
     switch (type) {
       case "files":
@@ -116,6 +123,7 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
           description:
             "This will permanently delete all uploaded files and their vector embeddings.",
           action: "Delete All Files",
+          confirmText: "DELETE_ALL_FILES",
         };
       case "text":
         return {
@@ -123,6 +131,7 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
           description:
             "This will permanently delete all text knowledge entries and their vector embeddings.",
           action: "Delete All Text",
+          confirmText: "DELETE_ALL_TEXT",
         };
       case "user-questions":
         return {
@@ -130,6 +139,7 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
           description:
             "This will permanently delete all questions submitted by users.",
           action: "Delete All User Questions",
+          confirmText: "DELETE_ALL_USER_QUESTIONS",
         };
       case "admin-questions":
         return {
@@ -137,6 +147,7 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
           description:
             "This will permanently delete all admin-generated questions.",
           action: "Delete All Admin Questions",
+          confirmText: "DELETE_ALL_ADMIN_QUESTIONS",
         };
       case "dept-failures":
         return {
@@ -144,6 +155,7 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
           description:
             "This will permanently delete all department detection failure records.",
           action: "Delete All Failures",
+          confirmText: "DELETE_ALL_DEPT_FAILURES",
         };
       case "response-times":
         return {
@@ -151,16 +163,38 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
           description:
             "This will permanently delete all response time tracking data.",
           action: "Delete All Response Times",
+          confirmText: "DELETE_ALL_RESPONSE_TIMES",
+        };
+      case "vector-db":
+        return {
+          title: "Purge Entire Vector Database",
+          description:
+            "This will permanently delete the entire vector database and all embeddings. This operation affects all departments and cannot be undone.",
+          action: "Purge Vector Database",
+          confirmText: "PURGE_ENTIRE_VECTOR_DB",
         };
       default:
-        return { title: "", description: "", action: "" };
+        return { title: "", description: "", action: "", confirmText: "" };
     }
   };
 
-  const { title, description, action } = getDialogContent();
+  const { title, description, action, confirmText } = getDialogContent();
 
+  const handleConfirm = () => {
+    if (confirmationText === confirmText) {
+      onConfirm();
+      setConfirmationText("");
+    }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setConfirmationText("");
+    }
+    onOpenChange(open);
+  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center space-x-2">
@@ -181,19 +215,42 @@ const DatabaseDeleteDialog: React.FC<DatabaseDeleteDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="confirmation">
+              Type{" "}
+              <code className="bg-muted px-1 rounded text-sm">
+                {confirmText}
+              </code>{" "}
+              to confirm:
+            </Label>
+            <Input
+              id="confirmation"
+              value={confirmationText}
+              onChange={(e) => setConfirmationText(e.target.value)}
+              placeholder={confirmText}
+              disabled={loading}
+            />
+          </div>
+        </div>
+
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={loading}
           >
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={loading}>
+          <Button
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={loading || confirmationText !== confirmText}
+          >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Deleting...
+                {type === "vector-db" ? "Purging..." : "Deleting..."}
               </>
             ) : (
               <>
@@ -338,6 +395,7 @@ const AdminDialog: React.FC<AdminDialogProps> = ({
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="read_only">Read Only</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -467,9 +525,108 @@ const PasswordResetDialog: React.FC<PasswordResetDialogProps> = ({
   );
 };
 
+const AdminDeleteDialog: React.FC<{
+  admin: Admin | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  loading: boolean;
+}> = ({ admin, open, onOpenChange, onConfirm, loading }) => {
+  const [confirmationText, setConfirmationText] = useState("");
+  const confirmText = "DELETE_ADMIN";
+
+  const handleConfirm = () => {
+    if (confirmationText === confirmText) {
+      onConfirm();
+      setConfirmationText("");
+    }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setConfirmationText("");
+    }
+    onOpenChange(open);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center w-10 h-10 bg-destructive/10 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </div>
+            <div>
+              <DialogTitle className="text-destructive">
+                Delete Admin
+              </DialogTitle>
+            </div>
+          </div>
+          <DialogDescription className="text-left">
+            This will permanently delete the admin account for{" "}
+            <strong>{admin?.name}</strong> ({admin?.email}).
+            <br />
+            <br />
+            <strong className="text-destructive">
+              This action cannot be undone.
+            </strong>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="confirmation">
+              Type{" "}
+              <code className="bg-muted px-1 rounded text-sm">
+                {confirmText}
+              </code>{" "}
+              to confirm:
+            </Label>
+            <Input
+              id="confirmation"
+              value={confirmationText}
+              onChange={(e) => setConfirmationText(e.target.value)}
+              placeholder={confirmText}
+              disabled={loading}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={loading || confirmationText !== confirmText}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Admin
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const SuperAdminPanel = () => {
   const [admins, setAdmins] = useState<Admin[]>([]);
-  const [status, setStatus] = useState<PurgeStatus | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminLoading, setAdminLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -480,6 +637,7 @@ const SuperAdminPanel = () => {
       | "admin-questions"
       | "dept-failures"
       | "response-times"
+      | "vector-db"
       | null;
     open: boolean;
   }>({
@@ -508,15 +666,14 @@ const SuperAdminPanel = () => {
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statusData, adminsData] = await Promise.all([
-        apiClient.getPurgeStatus(),
+      const [statsData, adminsData] = await Promise.all([
+        apiClient.getDashboardStats(),
         apiClient.getAllAdmins(),
       ]);
-      setStatus(statusData);
+      setStats(statsData);
       setAdmins(adminsData.admins);
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -529,7 +686,6 @@ const SuperAdminPanel = () => {
       setLoading(false);
     }
   };
-
   const handleDatabaseDelete = async () => {
     if (!deleteDialog.type) return;
 
@@ -554,23 +710,29 @@ const SuperAdminPanel = () => {
         case "response-times":
           await apiClient.deleteAllResponseTimes();
           break;
+        case "vector-db":
+          await apiClient.purgeEntireVectorDb();
+          break;
       }
 
       toast({
-        title: "Database cleaned",
-        description: `Successfully deleted all ${deleteDialog.type.replace(
-          "-",
-          " "
-        )}`,
+        title: "Operation completed",
+        description: `Successfully ${
+          deleteDialog.type === "vector-db"
+            ? "purged vector database"
+            : `deleted all ${deleteDialog.type.replace("-", " ")}`
+        }`,
       });
 
       setDeleteDialog({ type: null, open: false });
       fetchData();
     } catch (error) {
       toast({
-        title: "Delete failed",
+        title: "Operation failed",
         description:
-          error instanceof Error ? error.message : "Failed to delete data",
+          error instanceof Error
+            ? error.message
+            : "Failed to complete operation",
         variant: "destructive",
       });
     } finally {
@@ -634,14 +796,29 @@ const SuperAdminPanel = () => {
       setAdminLoading(false);
     }
   };
+  const [adminDeleteDialog, setAdminDeleteDialog] = useState<{
+    admin: Admin | null;
+    open: boolean;
+  }>({
+    admin: null,
+    open: false,
+  });
 
   const handleDeleteAdmin = async (admin: Admin) => {
+    setAdminDeleteDialog({ admin, open: true });
+  };
+
+  const confirmDeleteAdmin = async () => {
+    if (!adminDeleteDialog.admin) return;
+
+    setAdminLoading(true);
     try {
-      await apiClient.deleteAdmin(admin.id);
+      await apiClient.deleteAdmin(adminDeleteDialog.admin.id);
       toast({
         title: "Admin deleted",
-        description: `Successfully deleted admin: ${admin.name}`,
+        description: `Successfully deleted admin: ${adminDeleteDialog.admin.name}`,
       });
+      setAdminDeleteDialog({ admin: null, open: false });
       fetchData();
     } catch (error) {
       toast({
@@ -650,6 +827,8 @@ const SuperAdminPanel = () => {
           error instanceof Error ? error.message : "Failed to delete admin",
         variant: "destructive",
       });
+    } finally {
+      setAdminLoading(false);
     }
   };
 
@@ -694,25 +873,26 @@ const SuperAdminPanel = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {" "}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="text-center p-4 bg-secondary rounded-lg">
                   <FileText className="w-6 h-6 mx-auto mb-2 text-primary" />
                   <p className="text-2xl font-bold">
-                    {status?.total_files || 0}
+                    {stats?.total_file_knowledge || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">Files</p>
                 </div>
                 <div className="text-center p-4 bg-secondary rounded-lg">
                   <Database className="w-6 h-6 mx-auto mb-2 text-accent" />
                   <p className="text-2xl font-bold">
-                    {status?.total_text_records || 0}
+                    {stats?.total_text_knowledge || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">Text Records</p>
                 </div>
                 <div className="text-center p-4 bg-secondary rounded-lg">
                   <Users className="w-6 h-6 mx-auto mb-2 text-success" />
                   <p className="text-2xl font-bold">
-                    {status?.total_user_questions || 0}
+                    {stats?.total_user_questions || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     User Questions
@@ -721,31 +901,36 @@ const SuperAdminPanel = () => {
                 <div className="text-center p-4 bg-secondary rounded-lg">
                   <MessageSquare className="w-6 h-6 mx-auto mb-2 text-warning" />
                   <p className="text-2xl font-bold">
-                    {status?.total_admin_questions || 0}
+                    {stats?.total_admin_questions || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Admin Questions
                   </p>
                 </div>
               </div>
-
-              {/* Vector DB Status */}
-              <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">Vector Database</p>
-                  <p className="text-xs text-muted-foreground">
-                    Embedding storage status
+              {/* Additional Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                <div className="text-center p-4 bg-secondary rounded-lg">
+                  <Clock className="w-6 h-6 mx-auto mb-2 text-info" />
+                  <p className="text-2xl font-bold">
+                    {stats?.pending_questions || 0}
                   </p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
                 </div>
-                <Badge
-                  variant={
-                    status?.vector_db_status === "healthy"
-                      ? "default"
-                      : "destructive"
-                  }
-                >
-                  {status?.vector_db_status || "Unknown"}
-                </Badge>
+                <div className="text-center p-4 bg-secondary rounded-lg">
+                  <CheckCircle className="w-6 h-6 mx-auto mb-2 text-success" />
+                  <p className="text-2xl font-bold">
+                    {stats?.processed_questions || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Processed</p>
+                </div>
+                <div className="text-center p-4 bg-secondary rounded-lg">
+                  <Activity className="w-6 h-6 mx-auto mb-2 text-primary" />
+                  <p className="text-2xl font-bold">
+                    {stats?.active_users || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Active Users</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -762,7 +947,19 @@ const SuperAdminPanel = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {" "}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setDeleteDialog({ type: "vector-db", open: true })
+                  }
+                  className="justify-start text-red-600 hover:bg-red-50 border-red-200 col-span-full"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Purge Entire Vector Database
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -892,16 +1089,15 @@ const SuperAdminPanel = () => {
                             {admin.email}
                           </p>
                           <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
+                            {" "}
                             <div className="flex items-center space-x-1">
-                              {admin.email_verified ? (
+                              {admin.verified ? (
                                 <CheckCircle className="w-3 h-3 text-success" />
                               ) : (
                                 <XCircle className="w-3 h-3 text-destructive" />
                               )}
                               <span>
-                                {admin.email_verified
-                                  ? "Verified"
-                                  : "Unverified"}
+                                {admin.verified ? "Verified" : "Unverified"}
                               </span>
                             </div>
                             {admin.last_login && (
@@ -956,7 +1152,6 @@ const SuperAdminPanel = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
       {/* Dialogs */}
       <DatabaseDeleteDialog
         type={deleteDialog.type}
@@ -965,7 +1160,6 @@ const SuperAdminPanel = () => {
         onConfirm={handleDatabaseDelete}
         loading={deleteLoading}
       />
-
       <AdminDialog
         admin={adminDialog.admin}
         mode={adminDialog.mode}
@@ -973,13 +1167,21 @@ const SuperAdminPanel = () => {
         onOpenChange={(open) => setAdminDialog({ ...adminDialog, open })}
         onSave={handleAdminSave}
         loading={adminLoading}
-      />
-
+      />{" "}
       <PasswordResetDialog
         admin={passwordDialog.admin}
         open={passwordDialog.open}
         onOpenChange={(open) => setPasswordDialog({ ...passwordDialog, open })}
         onReset={handlePasswordReset}
+        loading={adminLoading}
+      />
+      <AdminDeleteDialog
+        admin={adminDeleteDialog.admin}
+        open={adminDeleteDialog.open}
+        onOpenChange={(open) =>
+          setAdminDeleteDialog({ ...adminDeleteDialog, open })
+        }
+        onConfirm={confirmDeleteAdmin}
         loading={adminLoading}
       />
     </div>

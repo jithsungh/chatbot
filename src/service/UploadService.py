@@ -49,6 +49,7 @@ async def upload_file(file, dept, file_uuid):
     
 
 def delete_vectors_by_knowledge_id(knowledge_id: str):
+    global chroma_collection
     if chroma_collection is None:
         init_chroma()
 

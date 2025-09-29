@@ -297,7 +297,7 @@ const Dashboard = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent">
             Dashboard
           </h1>
-          <p className="text-muted-foreground mt-2 text-lg">
+          {/* <p className="text-muted-foreground mt-2 text-lg">
             Welcome back! Here's what's happening with your chatbot.
           </p>{" "}
           {getCurrentStats() && (
@@ -311,6 +311,7 @@ const Dashboard = () => {
             </p>
           )}
           {/* Debug Info */}
+          {/*
           <div className="text-xs text-muted-foreground mt-2 space-y-1">
             <p>
               Admin: {admin?.name} ({admin?.role})
@@ -320,8 +321,8 @@ const Dashboard = () => {
               {localStorage.getItem("adminToken") ? "Present" : "Missing"}
             </p>
             <p>Loading: {loading ? "Yes" : "No"}</p>
-            <p>Stats: {stats ? "Loaded" : "Not loaded"}</p>
-          </div>
+            <p>Stats: {stats ? "Loaded" : "Not loaded"}</p> 
+          </div>*/}
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 bg-success/10 px-3 py-2 rounded-lg border border-success/20">
@@ -927,8 +928,11 @@ const Dashboard = () => {
           )}{" "}
         </CardContent>
       </Card>
-      {/* Database Management */}
-      <DatabaseManagement /> {/* Quick Actions */}
+      {/* Database Management 
+      <DatabaseManagement />*/}
+      <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent">
+        Quick Actions
+      </h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="card-hover">
           <CardHeader>

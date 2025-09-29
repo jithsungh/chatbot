@@ -97,7 +97,8 @@ const Queries = () => {
             status: "pending",
             dept: filterDept && filterDept !== "all" ? filterDept : undefined,
             admin: filterByMe && filterByMe !== "all" ? filterByMe : undefined,
-            sort_by: sortOrder === "desc",
+            sort_by: "createdAt",
+            order: sortOrder,
             limit: 100,
           })
           .catch(() => ({ questions: [] })),
@@ -106,7 +107,8 @@ const Queries = () => {
             status: "processed",
             dept: filterDept && filterDept !== "all" ? filterDept : undefined,
             admin: filterByMe && filterByMe !== "all" ? filterByMe : undefined,
-            sort_by: sortOrder === "desc",
+            sort_by: "createdAt",
+            order: sortOrder,
             limit: 100,
           })
           .catch(() => ({ questions: [] })),
