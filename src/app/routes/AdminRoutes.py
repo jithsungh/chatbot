@@ -413,8 +413,12 @@ async def delete_text_knowledge(
         if not text_record:
             raise HTTPException(status_code=404, detail="Text knowledge record not found")
 
-        # Delete associated vectors
-        vec_result = UploadService.delete_vectors_by_knowledge_id(str(text_record.id))
+         # Delete vectors from vectorDB
+        try:
+            result = UploadService.delete_vectors_by_knowledge_id(str(text_record.id))
+        except Exception as e:
+            logger.error(f"Failed to delete vectors from vectorDB: {e}")
+        
 
         # Delete DB record
         session.delete(text_record)
@@ -423,7 +427,7 @@ async def delete_text_knowledge(
         return {
             "success": True,
             "message": "Text knowledge deleted successfully",
-            "vector_deleted": vec_result
+            "vector_deleted": result
         }
 
     except HTTPException:

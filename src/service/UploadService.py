@@ -12,9 +12,8 @@ def get_collection():
         print(f"❌ Error creating ChromaDB collection: {e}")
         return None
 
-def init_chroma():
-    global chroma_collection
-    chroma_collection = get_collection()
+global chroma_collection
+chroma_collection = get_collection()
 
 
 async def upload_file(file, dept, file_uuid):
@@ -49,9 +48,9 @@ async def upload_file(file, dept, file_uuid):
     
 
 def delete_vectors_by_knowledge_id(knowledge_id: str):
-    global chroma_collection
     if chroma_collection is None:
-        init_chroma()
+        chroma_collection = get_collection()
+
 
     if not chroma_collection:
         return {"error": "Vector database chroma_collection not initialized"}
