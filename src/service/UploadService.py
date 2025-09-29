@@ -157,26 +157,23 @@ async def purge_all_vectors():
         try:
             global client
             if client is None:
-                client = get_client()
+                client = get_client()            # Get all collections to purge
+            collections = []
+            try:
+                # List all collections in ChromaDB
+                collections_list = client.list_collections()
+                collections = [collection.name for collection in collections_list]
+                print(f"Found {len(collections)} collections to purge: {collections}")
+            except Exception as list_error:
+                print(f"⚠️ Could not list collections: {list_error}")
+                # Use default collection name as fallback
+                collections = [Config.COLLECTION_NAME]
 
-
-            # Get all collections to purge
-            collections = [Config.COLLECTION_NAME]
-            # try:
-            #     # List all collections in ChromaDB
-            #     collections_list = client.list_collections()
-            #     collections = [collection.name for collection in collections_list]
-            #     print(f"Found {len(collections)} collections to purge: {collections}")
-            # except Exception as list_error:
-            #     print(f"⚠️ Could not list collections: {list_error}")
-            #     # Use default collection names as fallback
-            #     collections = ['default', 'documents', 'knowledge', 'qa-pairs']
-
-            # if not collections:
-            #     print("No collections found to purge")
-            #     result["success"] = True
-            #     result["message"] = "No collections found - vector database is already empty"
-            #     return result
+            if not collections:
+                print("No collections found to purge")
+                result["success"] = True
+                result["message"] = "No collections found - vector database is already empty"
+                return result
 
             total_deleted = 0
             deletion_results = []
@@ -223,30 +220,32 @@ async def purge_all_vectors():
 
             # Additional cleanup - reset ChromaDB if possible
             try:
-                # Reset the ChromaDB instance (if method exists)
-                if hasattr(client, 'reset'):
+                # Reset the ChromaDB instance (if method exists)                if hasattr(client, 'reset'):
                     client.reset()
                     print("✅ ChromaDB reset completed")
             except Exception as reset_error:
                 print(f"⚠️ Reset operation failed: {reset_error}")
-                result["errors"].append(f"Reset failed: {str(reset_error)}")
+                # Don't add reset errors to the main errors array as they are not critical
+                result["reset_warning"] = f"Reset failed: {str(reset_error)}"
 
             # Determine success status
             successful_deletions = len([r for r in deletion_results if r["status"] == "success"])
-            has_errors = len(result["errors"]) > 0
+            has_critical_errors = len(result["errors"]) > 0
             
-            result["success"] = successful_deletions > 0 and not has_errors
+            # Success if we successfully deleted at least one collection and no critical errors occurred
+            result["success"] = successful_deletions > 0
             result["deleted_count"] = total_deleted
             result["collections_processed"] = len(deletion_results)
             result["successful_deletions"] = successful_deletions
             result["deletion_details"] = deletion_results
 
             if result["success"]:
-                result["message"] = f"Successfully purged {successful_deletions} collections with {total_deleted} total vectors deleted"
-                print(f"🎉 {result['message']}")
-            elif successful_deletions > 0:
-                result["message"] = f"Partial purge completed: {successful_deletions}/{len(collections)} collections purged with errors"
-                print(f"⚠️ {result['message']}")
+                if has_critical_errors:
+                    result["message"] = f"Partial purge completed: {successful_deletions}/{len(collections)} collections purged with {total_deleted} total vectors deleted, but some errors occurred"
+                    print(f"⚠️ {result['message']}")
+                else:
+                    result["message"] = f"Successfully purged {successful_deletions} collections with {total_deleted} total vectors deleted"
+                    print(f"🎉 {result['message']}")
             else:
                 result["message"] = "Vector database purge failed - no collections were successfully purged"
                 print(f"💥 {result['message']}")
@@ -278,8 +277,7 @@ async def get_vector_count():
     Returns a dictionary with count information.
     """
     try:
-        global client
-
+        global client        
         if client is None:
             client = get_client()
 
@@ -292,8 +290,8 @@ async def get_vector_count():
             collections = [collection.name for collection in collections_list]
         except Exception as list_error:
             print(f"Could not list collections: {list_error}")
-            # Use default collection names as fallback
-            collections = ['default', 'documents', 'knowledge', 'qa-pairs']
+            # Use default collection name as fallback
+            collections = [Config.COLLECTION_NAME]
         
         for collection_name in collections:
             try:

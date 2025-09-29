@@ -819,9 +819,13 @@ async def refresh_router_data(
     Requires admin role or above.
     """
     try:
+        from src.inference.Pipeline import Pipeline
+
+        # Re-initialize the Pipeline to refresh components
+        Pipeline._initialize_components()
 
         # Refresh router data
-        success = department_router.router.refresh_data_from_database()
+        success = Pipeline.router.refresh_data_from_database()
         
         if success:
             # Get updated summary

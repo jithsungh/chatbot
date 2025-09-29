@@ -759,13 +759,13 @@ async def get_router_data_summary(
     Requires read-only admin access or above.
     """
     try:
-        from src.inference.Pipeline import pipeline
+        from src.inference.Pipeline import Pipeline
         
         # Initialize pipeline if needed
-        pipeline._initialize_components()
+        Pipeline._initialize_components()
         
         # Get data summary
-        summary = pipeline.router.get_data_summary()
+        summary = Pipeline.router.get_data_summary()
         
         return {
             "message": "Router data summary retrieved successfully",
