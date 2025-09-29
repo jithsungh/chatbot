@@ -590,7 +590,7 @@ async def get_dashboard_stats(current_admin: Admin = Depends(require_read_only_o
             ResponseTime.timestamp.desc()
         ).first()
         
-        avg_response_time = latest_response_time.response_time if latest_response_time else 0
+        avg_response_time = latest_response_time.avg_response_time if latest_response_time else 0
         
         # Get active users count (if HistoryManager is available)
         active_users_count = 0

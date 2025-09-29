@@ -26,8 +26,6 @@ class AvgResponseTimeCalculator:
     def _calculate_average_and_post(self):
         """Lock the list, calculate average, clear list, and post to DB."""
         with self.lock:
-            if not self.response_times:
-                return  # nothing to do
             times_copy = self.response_times.copy()
             self.response_times.clear()
 
@@ -47,7 +45,6 @@ class AvgResponseTimeCalculator:
 
     def _run(self):
         """Background thread that runs at the start of each minute."""
-        # Align first run to the top of the next minute
         while not self._stop_event.is_set():
             now = time.time()
             # seconds until the next full minute
