@@ -1,5 +1,6 @@
 from ..ingestion import TextChuncking, TextCleaning, TextExtraction, VectorEmbedding
 from src.config import Config
+import os
 
 def get_collection():
     """Get the shared ChromaDB collection (lazy loaded)"""
@@ -18,10 +19,12 @@ chroma_collection = get_collection()
 
 async def upload_file(file, dept, file_uuid):
     try:
+        # Sanitize filename -> replace spaces with underscores
+        safe_filename = os.path.basename(file.filename).replace(" ", "_")
+
         # Save the uploaded file to a temporary location
-        file_path = f"{Config.DOCUMENTS_PATH}/{file_uuid}_{file.filename}"
-        # with open(file_path, "wb") as f:
-        #     f.write(file.file.read())
+        file_path = f"{Config.DOCUMENTS_PATH}/{file_uuid}_{safe_filename}"
+        
         content = await file.read()
         with open(file_path, "wb") as f:
             f.write(content)
