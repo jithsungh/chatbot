@@ -42,7 +42,7 @@ class Pipeline:
             self.retriever = SimpleContextRetriever()
             print("✅ SimpleContextRetriever initialized")
             
-            self.history_manager = Config.HISTORY_MANAGER()
+            self.history_manager = Config.HISTORY_MANAGER
             print("✅ HistoryManager initialized")
             
             self.promptGenerator = PromptGenerator()

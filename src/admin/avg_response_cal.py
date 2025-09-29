@@ -5,18 +5,17 @@ from typing import List
 from src.models import ResponseTime
 from src.config import Config
 
+
 class AvgResponseTimeCalculator:
     def __init__(self, interval: int = 60):
         """
-        db_post_function: a callable that takes average response time and posts it to the DB
         interval: time in seconds to calculate average (default: 60 seconds)
         """
         self.response_times: List[float] = []
         self.lock = threading.Lock()
         self.interval = interval
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._run)
-        self._thread.daemon = True  # ensures thread stops when main program exits
+        self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
     def store_response_time(self, response_time: float):
@@ -34,20 +33,29 @@ class AvgResponseTimeCalculator:
 
         count = len(times_copy)
         avg_response_time = sum(times_copy) / count if count > 0 else None
-        # Post to database
+
         session = Config.get_session()
-        new_record = ResponseTime(
-            average_response_time=avg_response_time,
-            count=count
-        )
-        session.add(new_record)
-        session.commit()
-        session.close()
+        try:
+            new_record = ResponseTime(
+                average_response_time=avg_response_time,
+                count=count
+            )
+            session.add(new_record)
+            session.commit()
+        finally:
+            session.close()
 
     def _run(self):
-        """Background thread to run every interval seconds."""
+        """Background thread that runs at the start of each minute."""
+        # Align first run to the top of the next minute
         while not self._stop_event.is_set():
-            time.sleep(self.interval)
+            now = time.time()
+            # seconds until the next full minute
+            sleep_time = self.interval - (now % self.interval)
+            if sleep_time <= 0:
+                sleep_time = self.interval
+            if self._stop_event.wait(timeout=sleep_time):
+                break  # stop event triggered
             self._calculate_average_and_post()
 
     def stop(self):

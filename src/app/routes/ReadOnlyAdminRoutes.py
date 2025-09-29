@@ -606,7 +606,8 @@ async def get_dashboard_stats(current_admin: Admin = Depends(require_read_only_o
             "total_text_knowledge": text_knowledge_count,
             "total_file_knowledge": file_knowledge_count,
             "pending_questions": pending_admin_questions,
-            "processed_questions": processed_admin_questions,            "avg_response_time": avg_response_time,
+            "processed_questions": processed_admin_questions,            
+            "avg_response_time": avg_response_time,
             "active_users": active_users_count,
             "requested_by": str(current_admin.id)
         }
