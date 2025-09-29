@@ -457,9 +457,9 @@ export class ApiClient {
 
   async purgeEntireVectorDb() {
     const response = await fetch(
-      `${API_BASE_URL}/api/superadmin/purge/vector-db`,
+      `${API_BASE_URL}/api/superadmin/vector-db/purge`,
       {
-        method: "POST",
+        method: "DELETE",
         headers: {
           ...this.getAuthHeaders(),
           "Content-Type": "application/json",

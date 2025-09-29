@@ -11,7 +11,7 @@ from src.config import Config
 from src.service import UploadService
 from src.models import UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, ResponseTime, DeptFailure
 
-    
+     
 
 router = APIRouter()
 

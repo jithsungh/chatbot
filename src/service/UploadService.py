@@ -142,20 +142,19 @@ async def purge_all_vectors():
             "errors": []
         }
 
-        # Import VectorEmbedding to access the vector database
-        from ..ingestion import VectorEmbedding
         
         try:
-            # Get ChromaDB client instance
-            client = VectorEmbedding.get_chroma_client()
-            if not client:
-                raise Exception("Vector database client not initialized")
+            global chroma_collection   # ✅ tell Python to use the global variable
+    
+            if chroma_collection is None:
+                chroma_collection = get_collection()
+
 
             # Get all collections to purge
             collections = []
             try:
                 # List all collections in ChromaDB
-                collections_list = client.list_collections()
+                collections_list = chroma_collection.list_collections()
                 collections = [collection.name for collection in collections_list]
                 print(f"Found {len(collections)} collections to purge: {collections}")
             except Exception as list_error:
@@ -178,7 +177,7 @@ async def purge_all_vectors():
                     print(f"🗑️ Purging collection: {collection_name}")
                     
                     # Get the collection
-                    collection = client.get_collection(name=collection_name)
+                    collection = chroma_collection.get_collection(name=collection_name)
                     
                     # Get count before deletion
                     try:
@@ -188,7 +187,7 @@ async def purge_all_vectors():
                         collection_count = 0
 
                     # Delete the entire collection
-                    client.delete_collection(name=collection_name)
+                    chroma_collection.delete_collection(name=collection_name)
                     print(f"✅ Deleted collection: {collection_name} ({collection_count} documents)")
                     
                     deletion_results.append({
@@ -215,8 +214,8 @@ async def purge_all_vectors():
             # Additional cleanup - reset ChromaDB if possible
             try:
                 # Reset the ChromaDB instance (if method exists)
-                if hasattr(client, 'reset'):
-                    client.reset()
+                if hasattr(chroma_collection, 'reset'):
+                    chroma_collection.reset()
                     print("✅ ChromaDB reset completed")
             except Exception as reset_error:
                 print(f"⚠️ Reset operation failed: {reset_error}")
@@ -269,22 +268,18 @@ async def get_vector_count():
     Returns a dictionary with count information.
     """
     try:
-        from ..ingestion import VectorEmbedding
-        
-        # Get ChromaDB client instance
-        client = VectorEmbedding.get_chroma_client()
-        if not client:
-            return {
-                "success": False,
-                "error": "Vector database client not initialized"
-            }
+        global chroma_collection   # ✅ tell Python to use the global variable
+    
+        if chroma_collection is None:
+            chroma_collection = get_collection()
+
 
         total_count = 0
         collection_counts = []
 
         try:
             # Get all collections
-            collections_list = client.list_collections()
+            collections_list = chroma_collection.list_collections()
             collections = [collection.name for collection in collections_list]
         except Exception as list_error:
             print(f"Could not list collections: {list_error}")
@@ -294,7 +289,7 @@ async def get_vector_count():
         for collection_name in collections:
             try:
                 # Get the collection
-                collection = client.get_collection(name=collection_name)
+                collection = chroma_collection.get_collection(name=collection_name)
                 
                 # Get count from collection
                 count = collection.count()
