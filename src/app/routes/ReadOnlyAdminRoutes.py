@@ -603,14 +603,14 @@ async def get_dashboard_stats(current_admin: Admin = Depends(require_read_only_o
         
         # Get pending questions count
         # pending_user_questions = UserQuestion.get_pending_count(session)
-        pending_admin_questions = UserQuestion.get_pending_count(session)
-        
+        pending_admin_questions = AdminQuestion.get_pending_count(session)
+
         # Get processed questions count
         # processed_user_questions = UserQuestion.get_processed_count(session)
         processed_admin_questions = AdminQuestion.get_processed_count(session)
         
         # Get latest response time (if available)
-        latest_response_time = session.query(ResponseTime).order_by(
+        latest_response_time = session.query(ResponseTime).filter(ResponseTime.requests_count > 1).order_by(
             ResponseTime.timestamp.desc()
         ).first()
         
