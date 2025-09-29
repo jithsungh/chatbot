@@ -13,9 +13,10 @@ from src.service.get_response_times import get_last_n_avg_response_times, INTERV
 # Import models and dependencies at the top
 from src.models import (
     UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, 
-    ResponseTime, Department, DeptKeyword, Admin
+    ResponseTime, Department, DeptKeyword, Admin, DeptFailure, DeptFailureStatus
 )
 from src.models.user_question import DeptType
+from src.models.dept_failure import DeptCategory
 # Role-based authentication
 from src.dependencies.role_auth import require_read_only_or_above, get_admin_id_from_admin
 from src.config import Config
@@ -151,6 +152,8 @@ async def change_password(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         session.close()
+
+
 
 # get all user questions --> modified with better admin filtering
 @router.get("/getuserquestions")
@@ -570,6 +573,117 @@ async def get_dept_descriptions(
         return {
             "departments": result,
             "total": len(result),
+            "requested_by": str(current_admin.id)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        session.close()
+
+# get all dept failures
+@router.get("/departments/failures")
+async def get_dept_failures(
+    detected: Optional[str] = Query(None, description="Filter by detected department (HR, IT, Security, General Inquiry)"),
+    expected: Optional[str] = Query(None, description="Filter by expected department (HR, IT, Security, General Inquiry)"),
+    status: Optional[str] = Query(None, description="Filter by failure status (pending, processed, discarded)"),
+    admin: Optional[str] = Query(None, description="Filter by admin ('self' or admin_id)"),
+    sort_by: bool = Query(False, description="Sort by created_at: False=ascending, True=descending"),
+    limit: int = Query(100, ge=1, le=1000, description="Max number of results"),
+    offset: int = Query(0, ge=0, description="Number of results to skip"),
+    current_admin: Admin = Depends(require_read_only_or_above)
+):
+    """
+    Retrieve department failures with optional filters and pagination.
+    - detected: Filter by detected department category (HR, IT, Security, General Inquiry)
+    - expected: Filter by expected department category (HR, IT, Security, General Inquiry)
+    - status: Filter by failure status (pending, processed, discarded)
+    - admin: Filter by admin ('self' or specific admin_id)
+    - sort_by: If True, sort by created_at descending (latest first), else ascending
+    - limit: Maximum number of results (1-1000)
+    - offset: Number of results to skip for pagination
+    """
+    session = Config.get_session()
+    
+    try:
+        # Validate detected department if provided
+        valid_dept_categories = ['HR', 'IT', 'Security', 'General Inquiry']
+        if detected and detected not in valid_dept_categories:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid detected department '{detected}'. Must be one of: {', '.join(valid_dept_categories)}"
+            )
+        
+        # Validate expected department if provided
+        if expected and expected not in valid_dept_categories:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid expected department '{expected}'. Must be one of: {', '.join(valid_dept_categories)}"
+            )
+        
+        # Validate status if provided
+        valid_statuses = ['pending', 'processed', 'discarded']
+        if status and status not in valid_statuses:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}"
+            )
+        
+        # Build query
+        query = session.query(DeptFailure)
+        
+        # Apply filters
+        if detected:
+            detected_enum = DeptCategory(detected)
+            query = query.filter(DeptFailure.detected == detected_enum)
+        
+        if expected:
+            expected_enum = DeptCategory(expected)
+            query = query.filter(DeptFailure.expected == expected_enum)
+        
+        if status:
+            status_enum = DeptFailureStatus(status)
+            query = query.filter(DeptFailure.status == status_enum)
+        
+        if admin:
+            admin_uuid = parse_admin_id(admin, current_admin)
+            query = query.filter(DeptFailure.adminid == admin_uuid)
+        
+        # Sorting
+        if sort_by:
+            query = query.order_by(DeptFailure.created_at.desc())
+        else:
+            query = query.order_by(DeptFailure.created_at.asc())
+        
+        # Get total count before pagination
+        total_count = query.count()
+        
+        # Apply pagination
+        failures = query.offset(offset).limit(limit).all()
+        
+        # Format results
+        result = []
+        for failure in failures:
+            admin_name = await get_admin_name(session, str(failure.adminid)) if failure.adminid else None
+            result.append({
+                "id": str(failure.id),
+                "query": failure.query,
+                "adminid": str(failure.adminid) if failure.adminid else None,
+                "admin_name": admin_name,
+                "comments": failure.comments,
+                "detected": failure.detected.value if failure.detected else None,
+                "expected": failure.expected.value if failure.expected else None,
+                "status": failure.status.value if failure.status else None,
+                "created_at": failure.created_at.isoformat() if failure.created_at else None
+            })
+        
+        return {
+            "failures": result,
+            "total": total_count,
+            "limit": limit,
+            "offset": offset,
             "requested_by": str(current_admin.id)
         }
         

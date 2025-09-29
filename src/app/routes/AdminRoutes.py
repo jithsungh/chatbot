@@ -16,6 +16,7 @@ from src.dependencies.role_auth import require_admin_or_above, get_admin_id_from
 from src.models.admin import Admin
 
 from src.models import UserQuestion, AdminQuestion, TextKnowledge, FileKnowledge, Department, DeptKeyword
+from src.models.dept_failure import DeptFailure, DeptFailureStatus
 from src.models.user_question import DeptType
 from src.models.admin_question import AdminQuestionStatus
 
@@ -609,7 +610,111 @@ async def edit_department_description(
     finally:
         session.close()
 
-# upsert vector db with id
+# close dept failure
+@router.put("/departments/failures")
+async def close_department_failure(
+    failure_id: str = Body(..., embed=True),
+    comments: Optional[str] = Body(None, embed=True),
+    current_admin: Admin = Depends(require_admin_or_above)
+):
+    """
+    Mark a department failure as processed (closed) with optional comments.
+    """
+    session = Config.get_session()
+    try:
+        # Validate UUID
+        try:
+            f_id = UUID(failure_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid failure_id format")
+
+        # Fetch the failure record
+        failure_record = session.query(DeptFailure).filter(DeptFailure.id == f_id).first()
+        if not failure_record:
+            raise HTTPException(status_code=404, detail="Failure record not found")
+
+        # Check if already processed
+        if failure_record.status == DeptFailureStatus.processed:
+            raise HTTPException(status_code=400, detail="Failure is already processed")
+
+        # Update status
+        failure_record.status = DeptFailureStatus.processed
+        if comments:
+            failure_record.comments = comments.strip()
+        failure_record.adminid = current_admin.id
+
+        session.commit()
+
+        return {
+            "success": True,
+            "failure_id": failure_id,
+            "status": failure_record.status.value,
+            "closed_by": str(current_admin.id),
+            "comments": failure_record.comments,
+        }
+
+    except HTTPException:
+        session.rollback()
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+# discard dept failure
+@router.put("/departments/failures/discard")
+async def discard_department_failure(
+    failure_id: str = Body(..., embed=True),
+    comments: Optional[str] = Body(None, embed=True),
+    current_admin: Admin = Depends(require_admin_or_above)
+):
+    """
+    Mark a department failure as discarded with optional comments.
+    """
+    session = Config.get_session()
+    try:
+        # Validate UUID
+        try:
+            f_id = UUID(failure_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid failure_id format")
+
+        # Fetch the failure record
+        failure_record = session.query(DeptFailure).filter(DeptFailure.id == f_id).first()
+        if not failure_record:
+            raise HTTPException(status_code=404, detail="Failure record not found")
+
+        # Check if already discarded
+        if failure_record.status == DeptFailureStatus.discarded:
+            raise HTTPException(status_code=400, detail="Failure is already discarded")
+
+        # Update status
+        failure_record.status = DeptFailureStatus.discarded
+        if comments:
+            failure_record.comments = comments.strip()
+        failure_record.adminid = current_admin.id
+
+        session.commit()
+
+        return {
+            "success": True,
+            "failure_id": failure_id,
+            "status": failure_record.status.value,
+            "discarded_by": str(current_admin.id),
+            "comments": failure_record.comments,
+        }
+
+    except HTTPException:
+        session.rollback()
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+
 
 # purge user history older than given time , default 24hrs
 @router.delete("/history/purge")

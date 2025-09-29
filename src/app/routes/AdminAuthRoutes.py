@@ -12,6 +12,7 @@ import logging
 
 from src.config import Config
 from src.models.admin import Admin, AdminRole
+from src.dependencies.role_auth import require_read_only_or_above
 
 from uuid import UUID
 
@@ -374,6 +375,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         session.close()
 
 @router.get("/me")
-async def get_current_admin_info(current_admin: Admin = Depends(get_current_admin)):
+async def get_current_admin_info(current_admin: Admin = Depends(require_read_only_or_above)):
     """Get current admin information"""
     return current_admin.to_dict()
