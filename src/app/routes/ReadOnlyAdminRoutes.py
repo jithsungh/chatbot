@@ -155,61 +155,61 @@ async def change_password(
 
 
 
-# get all user questions --> modified with better admin filtering
+from sqlalchemy import asc, desc
+
 @router.get("/getuserquestions")
 async def get_user_questions(
     status: Optional[str] = Query(None),
     dept: Optional[str] = Query(None),
     admin: Optional[str] = Query(None),
-    sort_by: bool = Query(False),  # default ascending, true means descending
-    limit: int = Query(100, ge=1, le=1000),  # Add pagination
+    sort_by: Optional[str] = Query("createdAt"),  # e.g., "createdAt", "department", "status"
+    order: Optional[str] = Query("asc"),  # "asc" or "desc"
+    limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
+    current_admin: Admin = Depends(require_read_only_or_above)
 ):
     """
-    Retrieve user questions based on status, department, and admin.
-    - status: Filter by question status (e.g., 'pending', 'processed')
-    - dept: Filter by department (e.g., 'HR', 'IT', 'Finance')
-    - admin: If 'self', filter only questions tied to the current admin; or specific admin UUID
-    - sort_by: If True, sort by createdAt descending (latest first), else ascending
-    - limit: Maximum number of results (1-1000)
-    - offset: Number of results to skip for pagination
+    Retrieve user questions with enhanced filtering and sorting.
     """
     session = Config.get_session()
-
     try:
-        # Validate status
         valid_statuses = ['pending', 'processed']
+        valid_sort_fields = ["createdAt", "department", "status"]
+
+        # Validate filters
         if status and status not in valid_statuses:
             raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
-        
-        # Validate department
         if dept:
-            validate_department(dept)  # This will raise HTTPException if invalid
-        
+            validate_department(dept)
+
         query = session.query(UserQuestion)
         
         if status:
             query = query.filter(UserQuestion.status == status)
         if dept:
-            dept_enum = DeptType(dept)
-            query = query.filter(UserQuestion.dept == dept_enum)
+            query = query.filter(UserQuestion.dept == DeptType(dept))
+        if admin:
+            admin_uuid = parse_admin_id(admin, current_admin)
+            query = query.filter(UserQuestion.adminid == admin_uuid)
 
         # Sorting
-        if sort_by:
-            query = query.order_by(UserQuestion.createdat.desc())
-        else:
-            query = query.order_by(UserQuestion.createdat.asc())
+        if sort_by not in valid_sort_fields:
+            raise HTTPException(status_code=400, detail=f"Invalid sort_by field. Must be one of: {valid_sort_fields}")
         
-        # Get total count before pagination
+        sort_column = {
+            "createdAt": UserQuestion.createdat,
+            "department": UserQuestion.dept,
+            "status": UserQuestion.status
+        }[sort_by]
+
+        query = query.order_by(desc(sort_column) if order.lower() == "desc" else asc(sort_column))
+        
         total_count = query.count()
-        
-        # Apply pagination
         questions = query.offset(offset).limit(limit).all()
-        
-        # Get admin names for the results
+
         result = []
-        for q in questions:            result.append({
+        for q in questions:
+            result.append({
                 "id": str(q.id),
                 "query": q.query,
                 "answer": q.answer,
@@ -218,7 +218,7 @@ async def get_user_questions(
                 "status": q.status.value if q.status else None,
                 "createdAt": q.createdat.isoformat() if q.createdat else None
             })
-        
+
         return {
             "questions": result,
             "total": total_count,
@@ -226,7 +226,7 @@ async def get_user_questions(
             "offset": offset,
             "requested_by": str(current_admin.id)
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -234,62 +234,56 @@ async def get_user_questions(
     finally:
         session.close()
 
-# get all admin questions --> modify
 @router.get("/getadminquestions")
 async def get_admin_questions(
     status: Optional[str] = Query(None),
     dept: Optional[str] = Query(None),
     admin: Optional[str] = Query(None),
-    sort_by: bool = Query(False),  # default ascending, true = descending
+    sort_by: Optional[str] = Query("createdAt"),  # "createdAt", "department", "status", "frequency"
+    order: Optional[str] = Query("asc"),  # "asc" or "desc"
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
+    current_admin: Admin = Depends(require_read_only_or_above)
 ):
     """
-    Retrieve admin questions based on status, department, and admin.
-    - status: Filter by question status (e.g., 'pending', 'processed')
-    - dept: Filter by department (e.g., 'HR', 'IT', 'Finance')
-    - admin: If 'self', filter only questions tied to the current admin; or specific admin UUID
-    - sort_by: If True, sort by createdAt descending (latest first), else ascending
-    - limit: Maximum number of results (1-1000)
-    - offset: Number of results to skip for pagination
+    Retrieve admin questions with enhanced filtering and sorting.
     """
     session = Config.get_session()
-    
     try:
-        # Validate status
         valid_statuses = ['pending', 'processed']
+        valid_sort_fields = ["createdAt", "department", "status", "frequency"]
+
         if status and status not in valid_statuses:
             raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
-        
-        # Validate department
         if dept:
-            validate_department(dept)  # This will raise HTTPException if invalid
-        
+            validate_department(dept)
+
         query = session.query(AdminQuestion)
         
         if status:
             query = query.filter(AdminQuestion.status == status)
         if dept:
-            dept_enum = DeptType(dept)
-            query = query.filter(AdminQuestion.dept == dept_enum)
+            query = query.filter(AdminQuestion.dept == DeptType(dept))
         if admin:
             admin_uuid = parse_admin_id(admin, current_admin)
             query = query.filter(AdminQuestion.adminid == admin_uuid)
 
         # Sorting
-        if sort_by:
-            query = query.order_by(AdminQuestion.createdat.desc())
-        else:
-            query = query.order_by(AdminQuestion.createdat.asc())
+        if sort_by not in valid_sort_fields:
+            raise HTTPException(status_code=400, detail=f"Invalid sort_by field. Must be one of: {valid_sort_fields}")
+
+        sort_column = {
+            "createdAt": AdminQuestion.createdat,
+            "department": AdminQuestion.dept,
+            "status": AdminQuestion.status,
+            "frequency": AdminQuestion.frequency
+        }[sort_by]
+
+        query = query.order_by(desc(sort_column) if order.lower() == "desc" else asc(sort_column))
         
-        # Get total count before pagination
         total_count = query.count()
-        
-        # Apply pagination
         questions = query.offset(offset).limit(limit).all()
-        
-        # Get admin names for the results
+
         result = []
         for q in questions:
             admin_name = await get_admin_name(session, str(q.adminid)) if q.adminid else None
@@ -298,29 +292,30 @@ async def get_admin_questions(
                 "adminid": str(q.adminid) if q.adminid else None,
                 "admin_name": admin_name,
                 "question": q.question,
-                "answer": q.answer if q.answer else None,
-                "acceptance": q.notes if q.notes else None,
+                "answer": q.answer,
+                "acceptance": q.notes,
                 "department": q.dept.value if q.dept else None,
                 "status": q.status.value if q.status else None,
                 "frequency": q.frequency,
                 "vectordbid": str(q.vectordbid) if q.vectordbid else None,
                 "createdAt": q.createdat.isoformat() if q.createdat else None
             })
-        
+
         return {
-            "questions": result,            
+            "questions": result,
             "total": total_count,
             "limit": limit,
             "offset": offset,
             "requested_by": str(current_admin.id)
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         session.close()
+
 
 # get all text knowledge --> modify
 @router.get("/upload/text")
