@@ -12,9 +12,20 @@ def get_collection():
     except Exception as e:
         print(f"❌ Error creating ChromaDB collection: {e}")
         return None
+def get_client():
+    """Get the shared ChromaDB client (lazy loaded)"""
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=Config.CHROMADB_PATH)
+        return client
+    except Exception as e:
+        print(f"❌ Error creating ChromaDB client: {e}")
+        return None
 
 global chroma_collection
+global client
 chroma_collection = get_collection()
+client = get_client()
 
 
 async def upload_file(file, dept, file_uuid):
@@ -144,17 +155,16 @@ async def purge_all_vectors():
 
         
         try:
-            global chroma_collection   # ✅ tell Python to use the global variable
-    
-            if chroma_collection is None:
-                chroma_collection = get_collection()
+            global client
+            if client is None:
+                client = get_client()
 
 
             # Get all collections to purge
             collections = []
             try:
                 # List all collections in ChromaDB
-                collections_list = chroma_collection.list_collections()
+                collections_list = client.list_collections()
                 collections = [collection.name for collection in collections_list]
                 print(f"Found {len(collections)} collections to purge: {collections}")
             except Exception as list_error:
@@ -177,7 +187,7 @@ async def purge_all_vectors():
                     print(f"🗑️ Purging collection: {collection_name}")
                     
                     # Get the collection
-                    collection = chroma_collection.get_collection(name=collection_name)
+                    collection = client.get_collection(name=collection_name)
                     
                     # Get count before deletion
                     try:
@@ -187,7 +197,7 @@ async def purge_all_vectors():
                         collection_count = 0
 
                     # Delete the entire collection
-                    chroma_collection.delete_collection(name=collection_name)
+                    client.delete_collection(name=collection_name)
                     print(f"✅ Deleted collection: {collection_name} ({collection_count} documents)")
                     
                     deletion_results.append({
@@ -214,8 +224,8 @@ async def purge_all_vectors():
             # Additional cleanup - reset ChromaDB if possible
             try:
                 # Reset the ChromaDB instance (if method exists)
-                if hasattr(chroma_collection, 'reset'):
-                    chroma_collection.reset()
+                if hasattr(client, 'reset'):
+                    client.reset()
                     print("✅ ChromaDB reset completed")
             except Exception as reset_error:
                 print(f"⚠️ Reset operation failed: {reset_error}")
@@ -268,18 +278,17 @@ async def get_vector_count():
     Returns a dictionary with count information.
     """
     try:
-        global chroma_collection   # ✅ tell Python to use the global variable
-    
-        if chroma_collection is None:
-            chroma_collection = get_collection()
+        global client
 
+        if client is None:
+            client = get_client()
 
         total_count = 0
         collection_counts = []
 
         try:
             # Get all collections
-            collections_list = chroma_collection.list_collections()
+            collections_list = client.list_collections()
             collections = [collection.name for collection in collections_list]
         except Exception as list_error:
             print(f"Could not list collections: {list_error}")
@@ -289,7 +298,7 @@ async def get_vector_count():
         for collection_name in collections:
             try:
                 # Get the collection
-                collection = chroma_collection.get_collection(name=collection_name)
+                collection = client.get_collection(name=collection_name)
                 
                 # Get count from collection
                 count = collection.count()
