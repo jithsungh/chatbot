@@ -28,36 +28,6 @@ RECORDS_MAP = {
 }
 
 
-import pandas as pd
-from sqlalchemy.orm import Session
-from fastapi.logger import logger
-from src.models import ResponseTime
-
-INTERVALS_MAP = {
-    "1min": "1min",
-    "5min": "5min",
-    "10min": "10min",
-    "30min": "30min",
-    "1h": "1h",
-    "3h": "3h",
-    "6h": "6h",
-    "12h": "12h",
-    "24h": "24h",
-}
-
-RECORDS_MAP = {
-    "1min": 1,
-    "5min": 5,
-    "10min": 10,
-    "30min": 30,
-    "1h": 60,
-    "3h": 180,
-    "6h": 360,
-    "12h": 720,
-    "24h": 1440,
-}
-
-
 def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
     """
     Fetch last n aggregated average response times.
@@ -96,11 +66,11 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
             logger.warning("DataFrame is empty after converting records")
             now = pd.Timestamp.now()
             last_n_index = pd.date_range(end=now, periods=n, freq=INTERVALS_MAP[interval])
-            return [{"timestamp": ts.isoformat(), "avg_response_time": None} for ts in last_n_index]
-
-        # Prepare DataFrame
+            return [{"timestamp": ts.isoformat(), "avg_response_time": None} for ts in last_n_index]        # Prepare DataFrame
         df.sort_values("timestamp", inplace=True)
-        df.set_index("timestamp", inplace=True)        # Weighted average function
+        df.set_index("timestamp", inplace=True)
+
+        # Weighted average function that works on the entire group
         def weighted_avg(group):
             if group.empty:
                 return None
@@ -110,10 +80,8 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
             weighted_sum = (group['avg_response_time'] * group['requests_count']).sum()
             return weighted_sum / total_count
 
-        # Resample and compute weighted average - use agg instead of apply
-        resampled = df.resample(INTERVALS_MAP[interval]).agg({
-            'avg_response_time': weighted_avg
-        })
+        # Resample and compute weighted average using apply on the entire group
+        resampled = df.resample(INTERVALS_MAP[interval]).apply(weighted_avg)
 
         # Ensure exactly n points
         last_n_index = pd.date_range(
@@ -121,9 +89,8 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
             periods=n,
             freq=INTERVALS_MAP[interval]
         )
-        
-        # Reindex with proper handling of the Series
-        resampled_series = resampled['avg_response_time'].reindex(last_n_index, fill_value=None)
+          # Reindex with proper handling - resampled is now a Series
+        resampled_series = resampled.reindex(last_n_index, fill_value=None)
 
         # Convert to list of dicts
         result = [

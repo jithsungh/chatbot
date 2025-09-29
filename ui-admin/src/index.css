@@ -184,7 +184,6 @@
   .stats-card {
     @apply card-hover bg-gradient-to-br from-card to-background-secondary border rounded-xl p-6 relative overflow-hidden;
   }
-
   .stats-card::before {
     content: '';
     position: absolute;
@@ -193,5 +192,20 @@
     right: 0;
     height: 3px;
     background: var(--gradient-primary);
+  }
+
+  /* Text truncation utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }

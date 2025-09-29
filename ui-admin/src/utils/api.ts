@@ -627,7 +627,6 @@ export class ApiClient {
 
     return this.handleResponse(response);
   }
-
   async updateTextKnowledge(
     textId: string,
     data: {
@@ -643,6 +642,15 @@ export class ApiClient {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteTextKnowledge(textId: string) {
+    const response = await fetch(`${API_BASE_URL}/api/admin/text/${textId}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(),
     });
 
     return this.handleResponse(response);
