@@ -1,3 +1,5 @@
+from asyncio.log import logger
+import traceback
 from fastapi import APIRouter, UploadFile, File, HTTPException, Body, Query, Depends, Request
 from fastapi.responses import FileResponse
 from uuid import UUID
@@ -6,7 +8,7 @@ from sqlalchemy import func
 import asyncio
 import os
 from src.app.routes.AdminAuthRoutes import safe_password_hash, safe_password_verify
-from src.service.get_response_times import get_last_n_avg_response_times
+from src.service.get_response_times import get_last_n_avg_response_times, INTERVALS_MAP
 
 # Import models and dependencies at the top
 from src.models import (
@@ -51,21 +53,40 @@ def parse_admin_id(admin_id_str: str,        current_admin: Admin) -> UUID:
         raise HTTPException(status_code=400, detail="Invalid admin ID format")
 
 
-# get last n avg responses time 
+# get average response times
 @router.get("/avg-response-times")
 async def get_avg_response_times(
-    interval: str = Query(None),
-    n: str = Query(None),
+    interval: str = Query(..., description="Interval: 1min, 5min, 1h, etc."),
+    n: str = Query("20", description="Number of data points to return"),
     current_admin = Depends(require_read_only_or_above)
 ):
-    
     session = Config.get_session()
     try:
-        n = int(n) if n else 20
-        data = get_last_n_avg_response_times(session,interval,n)
-        return {"interval": interval, "n": n, "data": data}
+        # Validate interval
+        if interval not in INTERVALS_MAP:
+            raise HTTPException(status_code=400, detail=f"Invalid interval: {interval}")
+
+        # Validate n
+        try:
+            n_int = int(n)
+            if n_int <= 0:
+                raise ValueError()
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid n: {n}. Must be a positive integer.")
+
+        # Fetch data
+        data = get_last_n_avg_response_times(session, interval, n_int)
+        return {"interval": interval, "n": n_int, "data": data}
+
+    except HTTPException:
+        # Re-raise known HTTP exceptions
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log the full traceback for debugging
+        tb = traceback.format_exc()
+        logger.error(f"Error in get_avg_response_times: {str(e)}\n{tb}")
+        # Return a generic error message but keep details in server logs
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         session.close()
 

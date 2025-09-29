@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
 import pandas as pd
+from sqlalchemy.orm import Session
+from fastapi.logger import logger
 from src.models import ResponseTime
 
 INTERVALS_MAP = {
@@ -16,7 +16,7 @@ INTERVALS_MAP = {
 }
 
 RECORDS_MAP = {
-   "1min": 1,
+    "1min": 1,
     "5min": 5,
     "10min": 10,
     "30min": 30,
@@ -24,45 +24,74 @@ RECORDS_MAP = {
     "3h": 180,
     "6h": 360,
     "12h": 720,
-    "24h": 1440, 
+    "24h": 1440,
 }
 
+
 def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
+    """
+    Fetch last n aggregated average response times.
+    Returns intervals with avg_response_time = None if no requests were recorded.
+    """
+
     if interval not in INTERVALS_MAP:
-        raise ValueError("Invalid interval")
+        raise ValueError(f"Invalid interval: {interval}")
 
-    multiplier = RECORDS_MAP[interval]
-    records = (
-        db.query(ResponseTime)
-        .order_by(ResponseTime.timestamp.desc())
-        .limit(n * multiplier)
-        .all()
-    )
+    try:
+        multiplier = RECORDS_MAP.get(interval, 1)
+        # Fetch latest records, ordered by timestamp descending
+        records = (
+            db.query(ResponseTime)
+            .order_by(ResponseTime.timestamp.desc())
+            .limit(n * multiplier)
+            .all()
+        )
 
-    if not records:
-        return []
+        if not records:
+            logger.warning(f"No ResponseTime records found for interval '{interval}'")
+            return []
 
-    df = pd.DataFrame([{
-        "timestamp": r.timestamp,
-        "avg_response_time": r.avg_response_time,
-        "requests_count": r.requests_count
-    } for r in records])
+        # Convert to DataFrame
+        df = pd.DataFrame([{
+            "timestamp": r.timestamp,
+            "avg_response_time": r.avg_response_time,
+            "requests_count": r.requests_count
+        } for r in records])
 
-    df.sort_values("timestamp", inplace=True)
-    df.set_index("timestamp", inplace=True)
+        if df.empty:
+            logger.warning("DataFrame is empty after converting records")
+            return []
 
-    def weighted_avg(x):
-        total_count = x['requests_count'].sum()
-        if total_count == 0:
-            return None
-        return (x['avg_response_time'] * x['requests_count']).sum() / total_count
+        df.sort_values("timestamp", inplace=True)
+        df.set_index("timestamp", inplace=True)
 
-    resampled = df.resample(INTERVALS_MAP[interval]).apply(weighted_avg)
-    resampled = resampled.tail(n).reset_index().rename(columns={0: "avg_response_time"})
+        # Weighted average function
+        def weighted_avg(x):
+            total_count = x['requests_count'].sum()
+            if total_count == 0:
+                return None
+            return (x['avg_response_time'] * x['requests_count']).sum() / total_count
 
-    result = [
-        {"timestamp": ts.isoformat(), "avg_response_time": avg}
-        for ts, avg in zip(resampled["timestamp"], resampled["avg_response_time"])
-    ]
-    return result
+        # Resample and compute weighted average
+        resampled = df.resample(INTERVALS_MAP[interval]).apply(weighted_avg)
 
+        # Ensure exactly n points: last n intervals, fill missing with None
+        last_n_index = pd.date_range(
+            end=resampled.index.max(),
+            periods=n,
+            freq=INTERVALS_MAP[interval]
+        )
+        resampled = resampled.reindex(last_n_index)
+
+        # Convert to list of dicts
+        result = [
+            {"timestamp": ts.isoformat(), "avg_response_time": avg}
+            for ts, avg in zip(resampled.index, resampled[0])
+        ]
+
+        return result
+
+    except Exception as e:
+        tb = pd.util._exceptions  # pandas sometimes throws internal exceptions
+        logger.error(f"Error in get_last_n_avg_response_times: {str(e)}")
+        raise
