@@ -66,10 +66,9 @@ interface DashboardStats {
 }
 
 interface ResponseTimeData {
-  average_response_time: number;
-  data_points: number;
   interval?: string;
-  time_series: Array<{
+  n: number;
+  data: Array<{
     timestamp: string;
     avg_response_time: number;
   }>;
@@ -541,7 +540,10 @@ const Dashboard = () => {
                 </SelectContent>
               </Select>
               {/* Add one more selector for n, - 10 ,20,50,100 */}
-              <Select value={dataPoints.toString()} onValueChange={(val) => setDataPoints(Number(val))}>
+              <Select
+                value={dataPoints.toString()}
+                onValueChange={(val) => setDataPoints(Number(val))}
+              >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -568,19 +570,27 @@ const Dashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {responseTimeData && responseTimeData.time_series.length > 0 ? (
+          {responseTimeData &&
+          responseTimeData.data &&
+          responseTimeData.data.length > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-4">
+                  {" "}
                   <Badge
                     variant="outline"
                     className="bg-primary/10 text-primary border-primary/20"
                   >
                     Avg:{" "}
-                    {formatResponseTime(responseTimeData.average_response_time)}
+                    {formatResponseTime(
+                      responseTimeData.data.reduce(
+                        (sum, item) => sum + item.avg_response_time,
+                        0
+                      ) / responseTimeData.data.length
+                    )}
                   </Badge>
                   <Badge variant="outline" className="bg-secondary">
-                    Data Points: {responseTimeData.data_points}
+                    Data Points: {responseTimeData.n}
                   </Badge>
                   <div className="flex items-center space-x-2">
                     <div
@@ -617,7 +627,7 @@ const Dashboard = () => {
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={responseTimeData.time_series.map((item) => ({
+                      data={responseTimeData.data.map((item) => ({
                         ...item,
                         formattedTime: new Date(
                           item.timestamp

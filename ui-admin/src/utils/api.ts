@@ -294,7 +294,6 @@ export class ApiClient {
       requested_by: string;
     }>(response);
   }
-
   async getAvgResponseTimes(interval?: string, n?: number) {
     const params = new URLSearchParams();
     if (interval) params.append("interval", interval);
@@ -308,10 +307,9 @@ export class ApiClient {
     );
 
     return this.handleResponse<{
-      average_response_time: number;
-      data_points: number;
       interval?: string;
-      time_series: Array<{
+      n: number;
+      data: Array<{
         timestamp: string;
         avg_response_time: number;
       }>;
