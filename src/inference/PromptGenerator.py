@@ -4,7 +4,7 @@ class PromptGenerator:
     def __init__(self):
         pass
 
-    def generate_prompt(self, query: str, dept: str, context_text: str, history_text: str, last_context, last_followup) -> str:
+    async def generate_prompt(self, query: str, dept: str, context_text: str, history_text: str, last_context, last_followup) -> str:
         """
         Generates a structured prompt for Gemma-2-9b to answer queries about the organization.
         Ensures strict JSON output, professional tone, and context-aware followups.

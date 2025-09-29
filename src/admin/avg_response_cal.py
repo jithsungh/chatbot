@@ -37,8 +37,8 @@ class AvgResponseTimeCalculator:
         session = Config.get_session()
         try:
             new_record = ResponseTime(
-                average_response_time=avg_response_time,
-                count=count
+                avg_response_time=avg_response_time,
+                requests_count=count
             )
             session.add(new_record)
             session.commit()

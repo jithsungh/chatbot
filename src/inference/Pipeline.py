@@ -130,7 +130,7 @@ class Pipeline:
         except Exception as e:
             print(f"❌ Error submitting async database operations: {e}")
 
-    def process_user_query(self, query: str, userid: str) -> Dict[str, Any]:
+    async def process_user_query(self, query: str, userid: str) -> Dict[str, Any]:
         try:
             # Initialize components only when first query comes in
             self._initialize_components()
@@ -143,12 +143,12 @@ class Pipeline:
             context = " ,".join([c[0] for c in chunks])
 
             # 3) Get user history
-            history = self.history_manager.get_context(userid, k=5)
-            last_context = self.history_manager.get_last_context(userid)
-            last_followup = self.history_manager.get_last_followup(userid)
+            history = await self.history_manager.get_context(userid, k=5)
+            last_context = await self.history_manager.get_last_context(userid)
+            last_followup = await self.history_manager.get_last_followup(userid)
 
             # 4) Generate prompt and get LLM response
-            prompt = self.promptGenerator.generate_prompt(
+            prompt = await self.promptGenerator.generate_prompt(
                 query=query, 
                 dept=dept,
                 context_text=context, 
@@ -157,7 +157,7 @@ class Pipeline:
                 last_followup=last_followup
             )
 
-            response = self.llm_client.get_response(prompt)
+            response = await self.llm_client.get_response(prompt)
             parsed = self.response_formatter.to_json_object(response.content)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)

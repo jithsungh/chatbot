@@ -33,7 +33,7 @@ async def handle_query(
     
     try:
         start = time.perf_counter()
-        response = pipeline.process_user_query(query,userid)
+        response = await pipeline.process_user_query(query,userid)
         end = time.perf_counter()
         time_taken = end-start
         avg_response_cal.store_response_time(time_taken)
