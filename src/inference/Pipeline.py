@@ -157,7 +157,7 @@ class Pipeline:
                 last_followup=last_followup
             )
 
-            response = await self.llm_client.get_response(prompt)
+            response = self.llm_client.get_response(prompt)
             parsed = self.response_formatter.to_json_object(response.content)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)

@@ -29,13 +29,12 @@ class LLMClientGemma:
             print(f"❌ Failed to initialize LLM: {e}")
             raise
 
-    async def get_response(self, prompt: str) -> str:
+    def get_response(self, prompt: str) -> str:
         """Get response from Groq LLM"""
         try:
-            response = await self.llm.invoke([HumanMessage(content=prompt)])
+            response = self.llm.invoke([HumanMessage(content=prompt)])
             return response
         except Exception as e:
             print(f"❌ LLM prediction failed: {e}")
             raise
 
-            
