@@ -161,22 +161,22 @@ async def purge_all_vectors():
 
 
             # Get all collections to purge
-            collections = []
-            try:
-                # List all collections in ChromaDB
-                collections_list = client.list_collections()
-                collections = [collection.name for collection in collections_list]
-                print(f"Found {len(collections)} collections to purge: {collections}")
-            except Exception as list_error:
-                print(f"⚠️ Could not list collections: {list_error}")
-                # Use default collection names as fallback
-                collections = ['default', 'documents', 'knowledge', 'qa-pairs']
+            collections = [Config.COLLECTION_NAME]
+            # try:
+            #     # List all collections in ChromaDB
+            #     collections_list = client.list_collections()
+            #     collections = [collection.name for collection in collections_list]
+            #     print(f"Found {len(collections)} collections to purge: {collections}")
+            # except Exception as list_error:
+            #     print(f"⚠️ Could not list collections: {list_error}")
+            #     # Use default collection names as fallback
+            #     collections = ['default', 'documents', 'knowledge', 'qa-pairs']
 
-            if not collections:
-                print("No collections found to purge")
-                result["success"] = True
-                result["message"] = "No collections found - vector database is already empty"
-                return result
+            # if not collections:
+            #     print("No collections found to purge")
+            #     result["success"] = True
+            #     result["message"] = "No collections found - vector database is already empty"
+            #     return result
 
             total_deleted = 0
             deletion_results = []
