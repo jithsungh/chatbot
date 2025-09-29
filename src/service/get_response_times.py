@@ -31,7 +31,7 @@ RECORDS_MAP = {
 def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
     """
     Fetch last n aggregated average response times.
-    Returns intervals with avg_response_time = None if no requests were recorded.
+    Returns intervals with avg_response_time = 0 if no requests were recorded.
     """
 
     if interval not in INTERVALS_MAP:
@@ -48,12 +48,13 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
             .all()
         )
 
+        now = pd.Timestamp.now()
+
         # Handle case: no records in DB
         if not records:
             logger.warning(f"No ResponseTime records found for interval '{interval}'")
-            now = pd.Timestamp.now()
             last_n_index = pd.date_range(end=now, periods=n, freq=INTERVALS_MAP[interval])
-            return [{"timestamp": ts.isoformat(), "avg_response_time": None} for ts in last_n_index]
+            return [{"timestamp": ts.isoformat(), "avg_response_time": 0} for ts in last_n_index]
 
         # Convert to DataFrame
         df = pd.DataFrame([{
@@ -64,37 +65,39 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
 
         if df.empty:
             logger.warning("DataFrame is empty after converting records")
-            now = pd.Timestamp.now()
             last_n_index = pd.date_range(end=now, periods=n, freq=INTERVALS_MAP[interval])
-            return [{"timestamp": ts.isoformat(), "avg_response_time": None} for ts in last_n_index]        # Prepare DataFrame
+            return [{"timestamp": ts.isoformat(), "avg_response_time": 0} for ts in last_n_index]
+
+        # Prepare DataFrame
         df.sort_values("timestamp", inplace=True)
         df.set_index("timestamp", inplace=True)
 
-        # Weighted average function that works on the entire group
+        # Weighted average function
         def weighted_avg(group):
             if group.empty:
-                return None
+                return 0
             total_count = group['requests_count'].sum()
             if total_count == 0:
-                return None
+                return 0
             weighted_sum = (group['avg_response_time'] * group['requests_count']).sum()
             return weighted_sum / total_count
 
-        # Resample and compute weighted average using apply on the entire group
+        # Resample and compute weighted average
         resampled = df.resample(INTERVALS_MAP[interval]).apply(weighted_avg)
 
         # Ensure exactly n points
         last_n_index = pd.date_range(
-            end=resampled.index.max() if not resampled.empty else pd.Timestamp.now(),
+            end=resampled.index.max() if not resampled.empty else now,
             periods=n,
             freq=INTERVALS_MAP[interval]
         )
-          # Reindex with proper handling - resampled is now a Series
-        resampled_series = resampled.reindex(last_n_index, fill_value=None)
+
+        # Reindex and fill missing with 0
+        resampled_series = resampled.reindex(last_n_index, fill_value=0)
 
         # Convert to list of dicts
         result = [
-            {"timestamp": ts.isoformat(), "avg_response_time": avg}
+            {"timestamp": ts.isoformat(), "avg_response_time": float(avg)}
             for ts, avg in resampled_series.items()
         ]
 
@@ -103,4 +106,3 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
     except Exception as e:
         logger.error(f"Error in get_last_n_avg_response_times: {str(e)}", exc_info=True)
         raise
-

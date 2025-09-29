@@ -30,7 +30,8 @@ class AvgResponseTimeCalculator:
             self.response_times.clear()
 
         count = len(times_copy)
-        avg_response_time = sum(times_copy) / count if count > 0 else None
+        # Use 0 if no responses
+        avg_response_time = sum(times_copy) / count if count > 0 else 0
 
         session = Config.get_session()
         try:
