@@ -161,7 +161,7 @@ class Pipeline:
             parsed = self.response_formatter.to_json_object(response.content)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)
-            self.history_manager.update_context(
+            await self.history_manager.update_context(
                 userid, 
                 question=query, 
                 answer=parsed.answer, 
