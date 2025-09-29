@@ -55,12 +55,13 @@ def parse_admin_id(admin_id_str: str,        current_admin: Admin) -> UUID:
 @router.get("/avg-response-times")
 async def get_avg_response_times(
     interval: str = Query(None),
-    n: int = Query(None),
+    n: str = Query(None),
     current_admin = Depends(require_read_only_or_above)
 ):
     
     session = Config.get_session()
     try:
+        n = int(n) if n else 20
         data = get_last_n_avg_response_times(session,interval,n)
         return {"interval": interval, "n": n, "data": data}
     except Exception as e:
