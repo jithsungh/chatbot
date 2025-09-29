@@ -81,7 +81,7 @@ def get_last_n_avg_response_times(db: Session, interval: str, n: int = 50):
             periods=n,
             freq=INTERVALS_MAP[interval]
         )
-        resampled = resampled.reindex(last_n_index)
+        resampled = resampled.reindex(last_n_index).fillna(None)
 
         # Convert to list of dicts
         result = [
