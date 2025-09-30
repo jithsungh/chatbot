@@ -140,11 +140,17 @@ const Dashboard = () => {
     }, 60000); // 1 minute
 
     return () => clearInterval(interval);
-  }, [autoRefresh, stats, timeInterval]); // Format response time for display
-  const formatResponseTime = (time: number) => {
+  }, [autoRefresh, stats, timeInterval]); 
+  
+  // Format response time for display
+  const formatResponseTime = (time?: number | null) => {
+    if (typeof time !== "number" || isNaN(time)) return "N/A";
     if (time < 1) return `${(time * 1000).toFixed(0)}ms`;
     return `${time.toFixed(2)}s`;
-  }; // Mock data for testing (remove when API is working)
+  };
+  
+  
+  // Mock data for testing (remove when API is working)
   const getMockStats = (): DashboardStats => ({
     total_user_questions: 1234,
     total_admin_questions: 56,
@@ -665,7 +671,7 @@ const Dashboard = () => {
                       />
                       <YAxis
                         className="text-xs text-muted-foreground"
-                        tickFormatter={(value) => formatResponseTime(value)}
+                        tickFormatter={(value) => formatResponseTime(value as number)}
                       />{" "}
                       <ChartTooltip
                         content={
