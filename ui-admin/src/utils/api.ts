@@ -2,7 +2,7 @@
 export const API_BASE_URL =
   process.env.NODE_ENV === "production"
     ? window.location.origin
-    : " https://fulsome-unmonopolising-mariela.ngrok-free.dev";
+    : " http://localhost:8000";
 
 export interface ApiError {
   detail:
