@@ -28,7 +28,6 @@ export class ApiClient {
     // Redirect to login page
     window.location.href = "/login";
   }
-
   private async handleResponse<T>(response: Response): Promise<T> {
     console.log(
       `API Response: ${response.status} ${response.statusText} for ${response.url}`
@@ -45,7 +44,22 @@ export class ApiClient {
       let errorDetail = "An error occurred";
       try {
         const errorData: ApiError = await response.json();
-        if (typeof errorData.detail === "string") {
+
+        // Enhanced error handling for 422 validation errors
+        if (response.status === 422) {
+          console.error("422 Validation Error Details:", errorData);
+          if (Array.isArray(errorData.detail)) {
+            errorDetail =
+              "Validation Error: " +
+              errorData.detail
+                .map((err) => `${err.loc.join(".")}: ${err.msg}`)
+                .join(", ");
+          } else if (typeof errorData.detail === "string") {
+            errorDetail = `Validation Error: ${errorData.detail}`;
+          } else {
+            errorDetail = "Validation Error: Request data format is invalid";
+          }
+        } else if (typeof errorData.detail === "string") {
           errorDetail = errorData.detail;
         } else if (Array.isArray(errorData.detail)) {
           errorDetail = errorData.detail.map((err) => err.msg).join(", ");
@@ -985,43 +999,69 @@ export class ApiClient {
       requested_by: string;
     }>(response);
   }
-
   async closeDepartmentFailure(failureId: string, comments?: string) {
-    const response = await fetch(
-      `${API_BASE_URL}/api/admin/departments/failures`,
-      {
-        method: "PUT",
-        headers: {
-          ...this.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          failure_id: failureId,
-          comments: comments,
-        }),
-      }
-    );
+    // Validate required parameters
+    if (!failureId || typeof failureId !== "string") {
+      throw new Error("failure_id is required and must be a string");
+    }
 
-    return this.handleResponse(response);
+    const requestBody = {
+      failure_id: failureId,
+      comments: comments || undefined, // Ensure null becomes undefined
+    };
+
+    console.log("Closing department failure with data:", requestBody);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/departments/failures`,
+        {
+          method: "PUT",
+          headers: {
+            ...this.getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error("Error closing department failure:", error);
+      throw error;
+    }
   }
-
   async discardDepartmentFailure(failureId: string, comments?: string) {
-    const response = await fetch(
-      `${API_BASE_URL}/api/admin/departments/failures/discard`,
-      {
-        method: "PUT",
-        headers: {
-          ...this.getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          failure_id: failureId,
-          comments: comments,
-        }),
-      }
-    );
+    // Validate required parameters
+    if (!failureId || typeof failureId !== "string") {
+      throw new Error("failure_id is required and must be a string");
+    }
 
-    return this.handleResponse(response);
+    const requestBody = {
+      failure_id: failureId,
+      comments: comments || undefined, // Ensure null becomes undefined
+    };
+
+    console.log("Discarding department failure with data:", requestBody);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/departments/failures/discard`,
+        {
+          method: "PUT",
+          headers: {
+            ...this.getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error("Error discarding department failure:", error);
+      throw error;
+    }
   }
 }
 

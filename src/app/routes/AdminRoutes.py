@@ -786,8 +786,6 @@ async def discard_department_failure(
     finally:
         session.close()
 
-
-
 # purge user history older than given time , default 24hrs
 @router.delete("/history/purge")
 async def purge_user_history(
@@ -808,8 +806,7 @@ async def purge_user_history(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
 
-# ...existing code...
-
+# refresh router data
 @router.post("/refresh-router-data")
 async def refresh_router_data(
     current_admin: Admin = Depends(require_admin_or_above)
