@@ -69,7 +69,7 @@ origins = [
     "http://localhost:5173",   # React local dev
     "http://127.0.0.1:5173",
     "http://localhost:8080",   # Next.js local dev
-    "https://chatbot-three-woad-61.vercel.app",  # React prod
+    "https://chatbot-xy8m-five.vercel.app",  # React prod
     "https://fulsome-unmonopolising-mariela.ngrok-free.dev", # Ngrok tunnel
 ]
 
