@@ -72,14 +72,13 @@ interface DepartmentDescription {
 interface DepartmentFailure {
   id: string;
   query: string;
-  answer: string;
-  detected_department: string;
-  expected_department: string;
-  status: string;
-  user_id: string;
-  created_at: string;
-  processed_at?: string;
+  adminid?: string;
+  admin_name?: string;
   comments?: string;
+  detected: string;
+  expected: string;
+  status: string;
+  created_at: string;
 }
 
 const DepartmentManagement = () => {
@@ -773,10 +772,11 @@ const DepartmentManagement = () => {
               {/* Failures Table */}
               <div className="rounded-md border">
                 <Table>
+                  {" "}
                   <TableHeader>
                     <TableRow>
                       <TableHead>Query</TableHead>
-                      <TableHead>Answer</TableHead>
+                      <TableHead>Admin Info</TableHead>
                       <TableHead>Detected</TableHead>
                       <TableHead>Expected</TableHead>
                       <TableHead>Status</TableHead>
@@ -808,20 +808,18 @@ const DepartmentManagement = () => {
                             <div className="truncate" title={failure.query}>
                               {failure.query}
                             </div>
-                          </TableCell>
+                          </TableCell>{" "}
                           <TableCell className="max-w-xs">
-                            <div className="truncate" title={failure.answer}>
-                              {failure.answer}
+                            <div className="truncate">
+                              {failure.admin_name || failure.adminid || "N/A"}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">
-                              {failure.detected_department}
-                            </Badge>
+                            <Badge variant="outline">{failure.detected}</Badge>
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary">
-                              {failure.expected_department}
+                              {failure.expected}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -860,36 +858,38 @@ const DepartmentManagement = () => {
                                       <p className="text-sm bg-muted p-2 rounded">
                                         {failure.query}
                                       </p>
-                                    </div>
+                                    </div>{" "}
                                     <div>
                                       <Label className="text-sm font-medium">
-                                        Answer
+                                        Admin Info
                                       </Label>
                                       <p className="text-sm bg-muted p-2 rounded">
-                                        {failure.answer}
+                                        {failure.admin_name ||
+                                          failure.adminid ||
+                                          "N/A"}
                                       </p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                       <div>
                                         <Label className="text-sm font-medium">
                                           Detected Department
-                                        </Label>
+                                        </Label>{" "}
                                         <Badge
                                           variant="outline"
                                           className="mt-1"
                                         >
-                                          {failure.detected_department}
+                                          {failure.detected}
                                         </Badge>
                                       </div>
                                       <div>
                                         <Label className="text-sm font-medium">
                                           Expected Department
-                                        </Label>
+                                        </Label>{" "}
                                         <Badge
                                           variant="secondary"
                                           className="mt-1"
                                         >
-                                          {failure.expected_department}
+                                          {failure.expected}
                                         </Badge>
                                       </div>
                                     </div>

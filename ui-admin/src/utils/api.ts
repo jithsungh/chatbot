@@ -323,9 +323,8 @@ export class ApiClient {
     if (params.order) searchParams.append("order", params.order);
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
-
     const response = await fetch(
-      `${API_BASE_URL}/api/read/getuserquestions?${searchParams.toString()}`,
+      `${API_BASE_URL}/getuserquestions?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }
@@ -371,9 +370,8 @@ export class ApiClient {
     if (params.order) searchParams.append("order", params.order);
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
-
     const response = await fetch(
-      `${API_BASE_URL}/api/read/getadminquestions?${searchParams.toString()}`,
+      `${API_BASE_URL}/getadminquestions?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }
@@ -944,7 +942,6 @@ export class ApiClient {
 
     return this.handleResponse(response);
   }
-
   // Department failures management
   async getDepartmentFailures(
     params: {
@@ -974,21 +971,18 @@ export class ApiClient {
       failures: Array<{
         id: string;
         query: string;
-        answer: string;
-        detected_department: string;
-        expected_department: string;
-        status: string;
-        user_id: string;
-        created_at: string;
-        processed_at?: string;
+        adminid?: string;
+        admin_name?: string;
         comments?: string;
+        detected: string;
+        expected: string;
+        status: string;
+        created_at: string;
       }>;
-      total_count: number;
-      page_info: {
-        limit: number;
-        offset: number;
-        has_more: boolean;
-      };
+      total: number;
+      limit: number;
+      offset: number;
+      requested_by: string;
     }>(response);
   }
 
