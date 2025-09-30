@@ -2,7 +2,7 @@
 export const API_BASE_URL =
   process.env.NODE_ENV === "production"
     ? window.location.origin
-    : "http://localhost:8000";
+    : " https://fulsome-unmonopolising-mariela.ngrok-free.dev";
 
 export interface ApiError {
   detail:
@@ -351,7 +351,8 @@ export class ApiClient {
       questions: data.questions,
       total_count: data.total,
     };
-  }  async getAdminQuestions(
+  }
+  async getAdminQuestions(
     params: {
       status?: string;
       dept?: string;

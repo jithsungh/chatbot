@@ -220,7 +220,8 @@ async def purge_all_vectors():
 
             # Additional cleanup - reset ChromaDB if possible
             try:
-                # Reset the ChromaDB instance (if method exists)                if hasattr(client, 'reset'):
+                # Reset the ChromaDB instance (if method exists)
+                if hasattr(client, 'reset'):
                     client.reset()
                     print("✅ ChromaDB reset completed")
             except Exception as reset_error:

@@ -810,41 +810,41 @@ async def purge_user_history(
 
 # ...existing code...
 
-@router.post("/refresh-router-data")
-async def refresh_router_data(
-    current_admin: Admin = Depends(require_admin_or_above)
-):
-    """
-    Refresh department routing data from database.
-    Requires admin role or above.
-    """
-    try:
-        from .UserRoutes import pipeline
-        # Refresh router data
-        success = pipeline.router.refresh_data_from_database()
-        
-        if success:
-            # Get updated summary
-            summary = department_router.router.get_data_summary()
+    @router.post("/refresh-router-data")
+    async def refresh_router_data(
+        current_admin: Admin = Depends(require_admin_or_above)
+    ):
+        """
+        Refresh department routing data from database.
+        Requires admin role or above.
+        """
+        try:
+            from .UserRoutes import pipeline
+            # Refresh router data
+            success = pipeline.router.refresh_data_from_database()
+            
+            if success:
+                # Get updated summary
+                summary = department_router.router.get_data_summary()
 
-            return {
-                "message": "Router data refreshed successfully",
-                "success": True,
-                "data_summary": summary,
-                "refreshed_by": str(current_admin.id),
-                "admin_name": current_admin.name
-            }
-        else:
+                return {
+                    "message": "Router data refreshed successfully",
+                    "success": True,
+                    "data_summary": summary,
+                    "refreshed_by": str(current_admin.id),
+                    "admin_name": current_admin.name
+                }
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to refresh router data from database"
+                )
+                
+        except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail="Failed to refresh router data from database"
+                detail=f"Error refreshing router data: {str(e)}"
             )
-            
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error refreshing router data: {str(e)}"
-        )
 
 
 
