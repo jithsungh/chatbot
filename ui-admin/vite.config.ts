@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 5173, // let Vite use its default port
+    allowedHosts: ["fulsome-unmonopolising-mariela.ngrok-free.dev"],
     proxy: {
       "/api": {
         target: process.env.VITE_API_URL || "http://localhost:8000", // backend server

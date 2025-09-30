@@ -4,5 +4,6 @@ venv
 
 */vector_db
 
-
+documents
+chromadb
 .env
