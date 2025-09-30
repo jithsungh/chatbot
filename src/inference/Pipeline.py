@@ -108,7 +108,7 @@ class Pipeline:
         """Submit database operations to thread pool for async execution"""
         try:
             # Submit department failure check
-            if dept != parsed.dept and len(parsed.std_question) > 10:
+            if dept != parsed.dept and len(parsed.std_question) > 20:
                 self.db_executor.submit(
                     self._async_dept_failure_check, 
                     dept, 
@@ -117,7 +117,7 @@ class Pipeline:
                 )
             
             # Submit user question save for context-less queries
-            if not parsed.has_context and len(parsed.std_question) > 10:
+            if not parsed.has_context and len(parsed.std_question) > 20:
                 self.db_executor.submit(
                     self._async_user_question_save,
                     userid,

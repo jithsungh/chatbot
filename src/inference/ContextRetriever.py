@@ -54,33 +54,34 @@ class SimpleContextRetriever:
             if model is None:
                 print("❌ No embedding model available for context retrieval")
                 return []
-
+    
             # Generate query embedding
             q_emb = model.encode(query, convert_to_tensor=False)
             filter_ = self._apply_department_filter(dept)
-
+    
             # Query ChromaDB
             results = self.collection.query(
                 query_embeddings=[q_emb],
                 n_results=k,
                 where=filter_
             )
-
+    
             docs = results.get("documents", [[]])[0]
             distances = results.get("distances", [[]])[0]
+            metadatas = results.get("metadatas", [[]])[0]
             
             if not docs:
                 return []
-
-            # Pair (doc, distance) and sort ascending (lower distance = closer)
-            filtered = sorted(zip(docs, distances), key=lambda x: x[1])
-
+    
+            # Pair (doc, distance, metadata) and sort ascending (lower distance = closer)
+            filtered = sorted(zip(docs, distances, metadatas), key=lambda x: x[1])
+    
             # Return docs with distance < 1
             top_filtered = [item for item in filtered if item[1] < 1]
-
+    
             # count the docs with distance less than 1.5
             count_1_5 = sum(1 for item in filtered if item[1] < 1.5)
-            if count_1_5 <1:
+            if count_1_5 < 1:
                 # retry context retrieval without department filter
                 results = self.collection.query(
                     query_embeddings=[q_emb],
@@ -89,25 +90,58 @@ class SimpleContextRetriever:
                 )
                 docs = results.get("documents", [[]])[0]
                 distances = results.get("distances", [[]])[0]
-
+                metadatas = results.get("metadatas", [[]])[0]
+    
                 if not docs:
                     return []
-
-                # Pair (doc, distance) and sort ascending (lower distance = closer)
-                filtered = sorted(zip(docs, distances), key=lambda x: x[1])
-
+    
+                # Pair (doc, distance, metadata) and sort ascending (lower distance = closer)
+                filtered = sorted(zip(docs, distances, metadatas), key=lambda x: x[1])
+    
                 # Return docs with distance < 1
                 top_filtered = [item for item in filtered if item[1] < 1]
-
-
-            # Ensure minimum 3 docs
-            if len(top_filtered) < 3:
-                top_filtered = filtered[:max(3, min(len(filtered), max_docs))]
+    
+            # Extract knowledge IDs from top 2 docs and compare
+            if len(filtered) >= 2:
+                top_2_knowledge_ids = []
+                for i in range(min(2, len(filtered))):
+                    metadata = filtered[i][2]
+                    if metadata and 'knowledge_id' in metadata:
+                        top_2_knowledge_ids.append(metadata['knowledge_id'])
+                
+                # If we have knowledge IDs from top 2 docs, try to get more docs from the same knowledge base
+                if len(set(top_2_knowledge_ids)) == 1 and top_2_knowledge_ids[0]:  # Same knowledge_id
+                    knowledge_id = top_2_knowledge_ids[0]
+                    
+                    # Re-query with knowledge_id filter to get more related docs
+                    knowledge_filter = {"knowledge_id": knowledge_id}
+                    if filter_:  # Combine with department filter if exists
+                        knowledge_filter.update(filter_)
+                    
+                    knowledge_results = self.collection.query(
+                        query_embeddings=[q_emb],
+                        n_results=k * 2,  # Get more results to ensure we have enough
+                        where=knowledge_filter
+                    )
+                    
+                    k_docs = knowledge_results.get("documents", [[]])[0]
+                    k_distances = knowledge_results.get("distances", [[]])[0]
+                    k_metadatas = knowledge_results.get("metadatas", [[]])[0]
+                    
+                    if k_docs:
+                        # Update filtered results with knowledge-filtered results
+                        filtered = sorted(zip(k_docs, k_distances, k_metadatas), key=lambda x: x[1])
+                        top_filtered = [item for item in filtered if item[1] < 1]
+    
+            # Ensure minimum 4 docs (changed from 3 to 4)
+            if len(top_filtered) < 4:
+                top_filtered = filtered[:max(4, min(len(filtered), max_docs))]
             else:
                 top_filtered = top_filtered[:max_docs]
-
-            return top_filtered
-
+    
+            # Return only (doc, distance) tuples as expected by the original interface
+            return [(item[0], item[1]) for item in top_filtered]
+    
         except Exception as e:
             print(f"❌ Context retrieval error: {e}")
             return []
