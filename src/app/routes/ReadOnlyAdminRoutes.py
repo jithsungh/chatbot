@@ -710,7 +710,7 @@ async def get_dashboard_stats(current_admin: Admin = Depends(require_read_only_o
         processed_admin_questions = AdminQuestion.get_processed_count(session)
         
         # Get latest response time (if available)
-        latest_response_time = session.query(ResponseTime).filter(ResponseTime.requests_count > 1).order_by(
+        latest_response_time = session.query(ResponseTime).filter(ResponseTime.requests_count > 0).order_by(
             ResponseTime.timestamp.desc()
         ).first()
         
