@@ -4,7 +4,9 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Body, Query, Dep
 from fastapi.responses import FileResponse
 from uuid import UUID
 from typing import Optional, List
-from sqlalchemy import func
+
+from sqlalchemy import asc, desc, func
+
 import asyncio
 import os
 from src.app.routes.AdminAuthRoutes import safe_password_hash, safe_password_verify
@@ -153,9 +155,6 @@ async def change_password(
     finally:
         session.close()
 
-
-
-from sqlalchemy import asc, desc
 
 @router.get("/getuserquestions")
 async def get_user_questions(
@@ -581,6 +580,7 @@ async def get_dept_descriptions(
 # get all dept failures
 @router.get("/departments/failures")
 async def get_dept_failures(
+    request: Request,
     detected: Optional[str] = Query(None, description="Filter by detected department (HR, IT, Security, General Inquiry)"),
     expected: Optional[str] = Query(None, description="Filter by expected department (HR, IT, Security, General Inquiry)"),
     status: Optional[str] = Query(None, description="Filter by failure status (pending, processed, discarded)"),
@@ -592,88 +592,77 @@ async def get_dept_failures(
 ):
     """
     Retrieve department failures with optional filters and pagination.
-    - detected: Filter by detected department category (HR, IT, Security, General Inquiry)
-    - expected: Filter by expected department category (HR, IT, Security, General Inquiry)
-    - status: Filter by failure status (pending, processed, discarded)
-    - admin: Filter by admin ('self' or specific admin_id)
-    - sort_by: If True, sort by created_at descending (latest first), else ascending
-    - limit: Maximum number of results (1-1000)
-    - offset: Number of results to skip for pagination
     """
     session = Config.get_session()
-    
     try:
-        # Validate detected department if provided
+        # Validate enums
         valid_dept_categories = ['HR', 'IT', 'Security', 'General Inquiry']
-        if detected and detected not in valid_dept_categories:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid detected department '{detected}'. Must be one of: {', '.join(valid_dept_categories)}"
-            )
-        
-        # Validate expected department if provided
-        if expected and expected not in valid_dept_categories:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid expected department '{expected}'. Must be one of: {', '.join(valid_dept_categories)}"
-            )
-        
-        # Validate status if provided
         valid_statuses = ['pending', 'processed', 'discarded']
-        if status and status not in valid_statuses:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}"
-            )
-        
+
+        detected_enum = None
+        expected_enum = None
+        status_enum = None
+
+        if detected:
+            if detected not in valid_dept_categories:
+                raise HTTPException(status_code=400, detail=f"Invalid detected department '{detected}'")
+            detected_enum = DeptCategory(detected)
+
+        if expected:
+            if expected not in valid_dept_categories:
+                raise HTTPException(status_code=400, detail=f"Invalid expected department '{expected}'")
+            expected_enum = DeptCategory(expected)
+
+        if status:
+            if status not in valid_statuses:
+                raise HTTPException(status_code=400, detail=f"Invalid status '{status}'")
+            status_enum = DeptFailureStatus(status)
+
         # Build query
         query = session.query(DeptFailure)
-        
-        # Apply filters
-        if detected:
-            detected_enum = DeptCategory(detected)
+
+        if detected_enum:
             query = query.filter(DeptFailure.detected == detected_enum)
-        
-        if expected:
-            expected_enum = DeptCategory(expected)
+        if expected_enum:
             query = query.filter(DeptFailure.expected == expected_enum)
-        
-        if status:
-            status_enum = DeptFailureStatus(status)
+        if status_enum:
             query = query.filter(DeptFailure.status == status_enum)
-        
         if admin:
             admin_uuid = parse_admin_id(admin, current_admin)
             query = query.filter(DeptFailure.adminid == admin_uuid)
-        
+
         # Sorting
-        if sort_by:
-            query = query.order_by(DeptFailure.created_at.desc())
-        else:
-            query = query.order_by(DeptFailure.created_at.asc())
-        
-        # Get total count before pagination
+        query = query.order_by(DeptFailure.created_at.desc() if sort_by else DeptFailure.created_at.asc())
+
+        # Total count
         total_count = query.count()
-        
-        # Apply pagination
+
+        # Pagination
         failures = query.offset(offset).limit(limit).all()
-        
+
+        # Fetch admin names concurrently
+        async def fetch_admin_name(failure):
+            if failure.adminid:
+                return await get_admin_name(session, str(failure.adminid))
+            return None
+
+        admin_names = await asyncio.gather(*(fetch_admin_name(f) for f in failures))
+
         # Format results
         result = []
-        for failure in failures:
-            admin_name = await get_admin_name(session, str(failure.adminid)) if failure.adminid else None
+        for idx, failure in enumerate(failures):
             result.append({
                 "id": str(failure.id),
                 "query": failure.query,
                 "adminid": str(failure.adminid) if failure.adminid else None,
-                "admin_name": admin_name,
+                "admin_name": admin_names[idx],
                 "comments": failure.comments,
                 "detected": failure.detected.value if failure.detected else None,
                 "expected": failure.expected.value if failure.expected else None,
                 "status": failure.status.value if failure.status else None,
                 "created_at": failure.created_at.isoformat() if failure.created_at else None
             })
-        
+
         return {
             "failures": result,
             "total": total_count,
@@ -681,10 +670,12 @@ async def get_dept_failures(
             "offset": offset,
             "requested_by": str(current_admin.id)
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         session.close()
