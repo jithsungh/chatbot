@@ -596,7 +596,7 @@ async def get_dept_failures(
     session = Config.get_session()
     try:
         # Validate enums
-        valid_dept_categories = ['HR', 'IT', 'Security', 'General Inquiry']
+        valid_dept_categories = ['HR', 'IT', 'Security', 'General_Inquiry']
         valid_statuses = ['pending', 'processed', 'discarded']
 
         detected_enum = None

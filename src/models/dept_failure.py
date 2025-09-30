@@ -16,7 +16,7 @@ class DeptCategory(enum.Enum):
     HR = "HR"
     IT = "IT"
     Security = "Security"
-    General_Inquiry = "General Inquiry"
+    General_Inquiry = "General_Inquiry"
 
 class DeptFailure(Base):
     __tablename__ = "dept_failures"
