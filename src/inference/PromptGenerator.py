@@ -23,7 +23,7 @@ class PromptGenerator:
         {{
         "org_related": true | false,          // Whether the question is related to {Config.ORGANIZATION}
         "has_context": true | false,          // Whether there is sufficient context to answer
-        "answer": "string",                   // A clear, professional, descriptive answers in 4-6 full sentences
+        "answer": "string",                   // A clear, professional, descriptive answer in 3-4 full sentences
         "dept": "<one of {Config.DEPARTMENTS}>", // The most relevant department for the current query (for evaluation)
         "followup": "string",                 // A relevant next-step question or suggestion
         "std_question": "string"              // Standalone version of the user's question

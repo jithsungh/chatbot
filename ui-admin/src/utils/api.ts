@@ -202,7 +202,6 @@ export class ApiClient {
     if (params.sort_by) searchParams.append("sort_by", params.sort_by);
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
-
     const response = await fetch(
       `${API_BASE_URL}/api/read/upload/list?${searchParams.toString()}`,
       {

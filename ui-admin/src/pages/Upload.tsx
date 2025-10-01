@@ -84,6 +84,13 @@ interface TextKnowledge {
 }
 
 const Upload = () => {
+  /*
+   * FILTERING STRATEGY:
+   * - Server-side: Department filter, Admin filter (mine/all), Sort order (desc/asc)
+   * - Client-side: Search functionality (filename, title, content, uploader names)
+   * This hybrid approach optimizes API calls while providing responsive search
+   */
+
   // Upload states
   const [department, setDepartment] = useState("");
   const [files, setFiles] = useState<FileList | null>(null);
@@ -95,12 +102,11 @@ const Upload = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [textKnowledge, setTextKnowledge] = useState<TextKnowledge[]>([]);
   const [loading, setLoading] = useState(false);
-
   // Filter and search states
   const [fileFilter, setFileFilter] = useState<"all" | "mine">("all");
   const [textFilter, setTextFilter] = useState<"all" | "mine">("all");
-  const [fileDeptFilter, setFileDeptFilter] = useState("");
-  const [textDeptFilter, setTextDeptFilter] = useState("");
+  const [fileDeptFilter, setFileDeptFilter] = useState("all");
+  const [textDeptFilter, setTextDeptFilter] = useState("all");
   const [fileSearch, setFileSearch] = useState("");
   const [textSearch, setTextSearch] = useState("");
   const [fileSortBy, setFileSortBy] = useState<boolean>(true); // true = latest first, false = oldest first
@@ -112,12 +118,20 @@ const Upload = () => {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editDept, setEditDept] = useState("");
-
   const { toast } = useToast();
   const departments = ["HR", "IT", "Security"];
 
   // Get current user info for filtering
   const currentUser = JSON.parse(localStorage.getItem("adminInfo") || "{}");
+
+  // Utility function to clean department filter values
+  const cleanDeptFilter = (filter: string) => {
+    if (!filter || filter === "all" || filter === "") {
+      return undefined;
+    }
+    return filter;
+  };
+
   useEffect(() => {
     fetchUploadedData();
   }, []);
@@ -135,61 +149,86 @@ const Upload = () => {
   const fetchUploadedData = async () => {
     setLoading(true);
     try {
-      const [filesResponse, textResponse] = await Promise.all([
-        apiClient.getUploadedFiles({
-          limit: 100,
-          sort_by: fileSortBy ? "desc" : "asc", // convert boolean to string
-          admin: fileFilter === "mine" ? "self" : undefined,
-          dept:
-            fileDeptFilter && fileDeptFilter !== "all"
-              ? fileDeptFilter
-              : undefined,
-        }),
-        apiClient.getTextKnowledge({
-          limit: 100,
-          sort_by: textSortBy, // true = latest first (descending)
-          adminid: textFilter === "mine" ? "self" : undefined,
-          dept:
-            textDeptFilter && textDeptFilter !== "all"
-              ? textDeptFilter
-              : undefined,
-        }),
-      ]);
+      // Debug logging
+      console.log("Fetching uploaded data with filters:", {
+        fileDeptFilter,
+        textDeptFilter,
+        fileFilter,
+        textFilter,
+      });
+      const filesParams = {
+        limit: 1000,
+        sort_by: fileSortBy ? "desc" : "asc",
+        admin: fileFilter === "mine" ? "self" : undefined,
+        dept: cleanDeptFilter(fileDeptFilter),
+      };
 
-      // Map the API response to match the component interface
-      const mappedFiles = (filesResponse.records || []).map((record) => ({
-        id: record.id,
-        filename: record.file_name,
-        original_filename: record.file_name,
-        file_size: 0, // Not provided in new API
-        file_type: "", // Not provided in new API
-        department: record.dept,
-        uploaded_by: record.adminid,
-        uploaded_by_name: record.admin_name,
-        created_at: record.createdat,
+      const textParams = {
+        limit: 1000,
+        sort_by: textSortBy,
+        adminid: textFilter === "mine" ? "self" : undefined,
+        dept: cleanDeptFilter(textDeptFilter),
+      };
+
+      console.log("Files API params:", filesParams);
+      console.log("Text API params:", textParams);
+      let filesResponse, textResponse;
+
+      try {
+        filesResponse = await apiClient.getUploadedFiles(filesParams);
+        console.log("Files API response:", filesResponse);
+      } catch (error) {
+        console.error("Files API error:", error);
+        filesResponse = { records: [] };
+      }
+
+      try {
+        textResponse = await apiClient.getTextKnowledge(textParams);
+        console.log("Text API response:", textResponse);
+      } catch (error) {
+        console.error("Text API error:", error);
+        textResponse = { records: [] };
+      } // Map the API response to match the component interface
+      const mappedFiles = (filesResponse?.records || []).map((record) => ({
+        id: record.id || "",
+        filename: record.file_name || "Unknown File",
+        original_filename: record.file_name || "Unknown File",
+        file_size: 0, // Not provided in API response
+        file_type: "", // Not provided in API response
+        department: record.dept || "Unknown",
+        uploaded_by: record.adminid || "",
+        uploaded_by_name: record.admin_name || "Unknown User",
+        created_at: record.createdat || new Date().toISOString(),
         processing_status: "success", // Assume success if not provided
-        download_url: record.file_url,
+        download_url: record.file_url || "",
       }));
-
-      const mappedTexts = (textResponse.records || []).map((record) => ({
-        id: record.id,
-        title: record.title,
-        text: record.text,
-        department: record.dept,
-        uploaded_by: record.adminid,
-        uploaded_by_name: record.admin_name,
-        created_at: record.createdat,
-        updated_at: record.createdat, // Use createdat as fallback
-        chunk_count: 0, // Not provided in new API
+      const mappedTexts = (textResponse?.records || []).map((record) => ({
+        id: record.id || "",
+        title: record.title || "Untitled",
+        text: record.text || "",
+        department: record.dept || "Unknown",
+        uploaded_by: record.adminid || "",
+        uploaded_by_name: record.admin_name || "Unknown User",
+        created_at: record.createdat || new Date().toISOString(),
+        updated_at: record.createdat || new Date().toISOString(), // Use createdat as fallback
+        chunk_count: 0, // Not provided in API response
       }));
-
       setUploadedFiles(mappedFiles);
       setTextKnowledge(mappedTexts);
+      console.log("Data fetched successfully");
     } catch (error) {
       console.error("Failed to fetch uploaded data:", error);
+
+      // Reset to empty arrays on error to prevent UI issues
+      setUploadedFiles([]);
+      setTextKnowledge([]);
+
       toast({
         title: "Error",
-        description: "Failed to load uploaded content",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to load uploaded content",
         variant: "destructive",
       });
     } finally {
@@ -365,25 +404,37 @@ const Upload = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  }; // Filter and sort functions
+  };
+
+  // Client-side filtering for search functionality
+  // Note: Department, admin, and sort filters are handled server-side via API calls
   const filteredAndSortedFiles = uploadedFiles.filter((file) => {
-    // Filter by search (client-side filtering for search)
-    if (
-      fileSearch &&
-      !file.original_filename.toLowerCase().includes(fileSearch.toLowerCase())
-    )
-      return false;
+    // Search filter (client-side only - searches filename and uploader name)
+    if (fileSearch) {
+      const searchLower = fileSearch.toLowerCase();
+      const filenameMatch = file.original_filename
+        .toLowerCase()
+        .includes(searchLower);
+      const uploaderMatch = file.uploaded_by_name
+        .toLowerCase()
+        .includes(searchLower);
+      if (!filenameMatch && !uploaderMatch) return false;
+    }
 
     return true;
   });
 
   const filteredAndSortedTexts = textKnowledge.filter((text) => {
-    // Filter by search (client-side filtering for search)
-    if (
-      textSearch &&
-      !text.title.toLowerCase().includes(textSearch.toLowerCase())
-    )
-      return false;
+    // Search filter (client-side only - searches title, content, and uploader name)
+    if (textSearch) {
+      const searchLower = textSearch.toLowerCase();
+      const titleMatch = text.title.toLowerCase().includes(searchLower);
+      const contentMatch = text.text.toLowerCase().includes(searchLower);
+      const uploaderMatch = text.uploaded_by_name
+        .toLowerCase()
+        .includes(searchLower);
+      if (!titleMatch && !contentMatch && !uploaderMatch) return false;
+    }
 
     return true;
   });
@@ -398,7 +449,7 @@ const Upload = () => {
           <p className="text-muted-foreground mt-1">
             Manage your knowledge base by uploading files or adding text content
           </p>
-        </div>
+        </div>{" "}
         <Button
           onClick={fetchUploadedData}
           variant="outline"
@@ -406,11 +457,16 @@ const Upload = () => {
           disabled={loading}
         >
           {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              Loading...
+            </>
           ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </>
           )}
-          Refresh
         </Button>
       </div>
 

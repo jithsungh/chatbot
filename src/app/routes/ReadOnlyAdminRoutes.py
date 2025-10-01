@@ -323,7 +323,8 @@ async def get_all_text_knowledge(
     adminid: Optional[str] = Query(None),  # "self" or specific UUID
     sort_by: bool = Query(False),  # default asc, True = desc
     limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
+    offset: int = Query(0, ge=0),    
+    current_admin: Admin = Depends(require_read_only_or_above)  # Validate admin token
 ):
     """
     Retrieve all text knowledge records, optionally filtered by department and admin.
