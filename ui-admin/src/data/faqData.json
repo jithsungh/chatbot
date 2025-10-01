@@ -1,0 +1,1031 @@
+{
+  "categories": [
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "icon": "Rocket",
+      "description": "Basic setup and first steps",
+      "faqs": [
+        {
+          "id": "login",
+          "question": "How do I log into the admin panel?",
+          "answer": "To access the admin panel, navigate to the login page and enter your admin credentials (email and password). Only authorized administrators can access the system. If you don't have credentials, contact your super administrator.",
+          "steps": [
+            "Navigate to /login page or the root URL",
+            "Enter your registered email address in the Email field",
+            "Enter your password in the Password field",
+            "Click the 'Sign In' button",
+            "You'll be redirected to the Dashboard upon successful login"
+          ],
+          "troubleshooting": [
+            "If login fails, verify your email and password are correct",
+            "Ensure your account is enabled and verified",
+            "Contact your super administrator if issues persist"
+          ],
+          "tags": ["login", "authentication", "access", "credentials"]
+        },
+        {
+          "id": "first-time-setup",
+          "question": "What should I do when I first log in?",
+          "answer": "After your first login, familiarize yourself with the interface and set up your initial content.",
+          "steps": [
+            "Explore the Dashboard to understand system metrics",
+            "Navigate through each section using the top navigation bar",
+            "Check the floating chatbot in the bottom-right corner",
+            "Review any pending questions in the Queries section",
+            "Add your first content via the Upload section"
+          ],
+          "tips": [
+            "Start with the Dashboard to get an overview",
+            "Test the chatbot functionality early",
+            "Upload sample content to see how the system works"
+          ],
+          "tags": ["first-time", "setup", "orientation", "getting-started"]
+        }
+      ]
+    },
+    {
+      "id": "dashboard",
+      "title": "Dashboard Overview",
+      "icon": "BarChart3",
+      "description": "Understanding the main dashboard",
+      "faqs": [
+        {
+          "id": "dashboard-metrics",
+          "question": "What do all the dashboard metrics mean?",
+          "answer": "The Dashboard displays key performance indicators and system statistics to help you monitor your chatbot's performance.",
+          "details": {
+            "metrics": [
+              "Answered Questions - Total successfully resolved user queries",
+              "Pending Questions - Questions awaiting admin response",
+              "Average Response Time - System performance metric in seconds",
+              "Total Files in Database - Number of uploaded documents",
+              "Total Uploaded Texts - Direct text knowledge entries",
+              "Active Users - Current users interacting with the system"
+            ]
+          },
+          "actions": [
+            "Click on metric cards to navigate to relevant sections",
+            "Use 'View All' buttons to see detailed data",
+            "Monitor trends using the visual charts"
+          ],
+          "tags": ["dashboard", "metrics", "statistics", "performance"]
+        },
+        {
+          "id": "dashboard-charts",
+          "question": "How do I interpret the Request Count Graph?",
+          "answer": "The Request Count Graph shows system usage patterns over time, helping you understand peak usage periods and system load.",
+          "steps": [
+            "View the graph in the lower section of the Dashboard",
+            "Use the time interval dropdown to change the view (1min, 5min, 10min, etc.)",
+            "Adjust data points slider to show more or fewer data points",
+            "Toggle auto-refresh to keep data current",
+            "Hover over data points to see exact values"
+          ],
+          "features": [
+            "Customizable time intervals from 1 minute to 1 hour",
+            "Adjustable number of data points (5-50)",
+            "Auto-refresh functionality",
+            "Interactive hover tooltips",
+            "Real-time data updates"
+          ],
+          "tags": ["dashboard", "charts", "graphs", "analytics", "usage"]
+        },
+        {
+          "id": "dashboard-actions",
+          "question": "What are the Quick Actions on the Dashboard?",
+          "answer": "Quick Actions provide immediate access to common administrative tasks without navigating through menus.",
+          "actions": [
+            "Upload Files - Direct access to file upload functionality",
+            "Add Text Content - Quick text knowledge entry",
+            "Test Chatbot - Open the floating chatbot for testing",
+            "View Questions - Navigate to the Questions overview"
+          ],
+          "tips": [
+            "Use Quick Actions for frequent tasks",
+            "Test new content immediately after uploading",
+            "Monitor system status indicators regularly"
+          ],
+          "tags": ["dashboard", "quick-actions", "shortcuts", "navigation"]
+        },
+        {
+          "id": "dashboard-refresh",
+          "question": "How do I refresh dashboard data?",
+          "answer": "The Dashboard supports both manual and automatic data refresh to keep information current.",
+          "steps": [
+            "Use the 'Refresh' button in the top-right corner for manual refresh",
+            "Enable auto-refresh toggle for automatic updates every minute",
+            "Individual sections refresh when you navigate back to the Dashboard",
+            "Charts update in real-time when auto-refresh is enabled"
+          ],
+          "features": [
+            "Manual refresh button",
+            "Auto-refresh toggle (1-minute intervals)",
+            "Real-time chart updates",
+            "Section-specific refresh on navigation"
+          ],
+          "tags": ["dashboard", "refresh", "real-time", "updates"]
+        }
+      ]
+    },
+    {
+      "id": "navigation",
+      "title": "Navigation & Interface",
+      "icon": "Navigation",
+      "description": "Understanding the admin interface",
+      "faqs": [
+        {
+          "id": "main-navigation",
+          "question": "How do I navigate between different sections?",
+          "answer": "The main navigation is located in the top navigation bar. Each section has a dedicated page with specific functionality.",
+          "sections": [
+            "Dashboard - System overview, metrics, and quick actions",
+            "Upload - File and text content management with filtering",
+            "Queries - Handle pending and answered questions from users",
+            "Questions - Browse all user and admin questions with advanced filtering",
+            "Departments - Manage department settings, keywords, and routing",
+            "Help & FAQs - Complete documentation and user manual",
+            "Admin - Super admin only database and user management"
+          ],
+          "features": [
+            "Active page highlighting in navigation",
+            "Responsive design for mobile devices",
+            "Role-based menu items (Admin section for super admins only)",
+            "Gradient styling for visual appeal"
+          ],
+          "tags": ["navigation", "interface", "menu", "sections"]
+        },
+        {
+          "id": "user-menu",
+          "question": "How do I access user settings and logout?",
+          "answer": "Click on your avatar in the top-right corner to access user options including profile information and logout functionality.",
+          "steps": [
+            "Look for your avatar/initial circle in the top-right corner of the navigation",
+            "Click on the avatar to open the dropdown menu",
+            "Select 'Profile' to view your account information and role",
+            "Select 'Logout' to safely sign out of the system",
+            "Confirm logout in the dialog that appears to complete the process"
+          ],
+          "profile_info": [
+            "Your name and email address",
+            "Assigned role (admin or super_admin)",
+            "Account status and verification status",
+            "Last login information"
+          ],
+          "tags": ["user", "profile", "logout", "settings", "avatar"]
+        },
+        {
+          "id": "chatbot-widget",
+          "question": "How do I use the floating chatbot widget?",
+          "answer": "The floating chatbot widget allows you to test the chatbot functionality in real-time from any page.",
+          "steps": [
+            "Look for the chat bubble icon in the bottom-right corner of any page",
+            "Click the icon to open the chatbot interface",
+            "Type your test question in the input field",
+            "Press Enter or click the Send button to submit",
+            "Review the chatbot's response for accuracy",
+            "Use the minimize button to close the widget"
+          ],
+          "features": [
+            "Available on all admin pages",
+            "Real-time response testing",
+            "Minimizable interface",
+            "Integration with 'Test in Chat' buttons from other sections"
+          ],
+          "tips": [
+            "Test new content immediately after uploading",
+            "Use questions from the Questions section for testing",
+            "Verify department routing works correctly"
+          ],
+          "tags": ["chatbot", "widget", "testing", "floating", "real-time"]
+        }
+      ]
+    },
+    {
+      "id": "upload-management",
+      "title": "Upload & Knowledge Management",
+      "icon": "Upload",
+      "description": "Managing files and text content",
+      "faqs": [
+        {
+          "id": "file-upload-process",
+          "question": "How do I upload files to the knowledge base?",
+          "answer": "Use the Upload page to add documents that will enhance your chatbot's knowledge base. The system supports multiple file formats and processes them automatically.",
+          "steps": [
+            "Navigate to Upload page from the main navigation menu",
+            "Go to the 'File Upload' section at the top",
+            "Select the appropriate department from the dropdown menu",
+            "Click 'Select Files' button to open the file browser",
+            "Choose one or multiple files (supported: PDF, DOC, DOCX, TXT, MD)",
+            "Click 'Upload Files' button to start the upload process",
+            "Monitor the upload progress and wait for completion notification"
+          ],
+          "supported_formats": [
+            "PDF - Portable Document Format files",
+            "DOC - Microsoft Word documents (legacy)",
+            "DOCX - Microsoft Word documents (modern)",
+            "TXT - Plain text files",
+            "MD - Markdown files"
+          ],
+          "tips": [
+            "Files are automatically processed and vectorized after upload",
+            "Large files may take several minutes to process completely",
+            "Ensure files contain relevant information for the selected department",
+            "Check processing status in the Uploaded Files tab"
+          ],
+          "limitations": [
+            "Maximum file size limits may apply based on server configuration",
+            "Processing time increases with file size and complexity",
+            "Some corrupted or password-protected files may fail to process"
+          ],
+          "tags": [
+            "upload",
+            "files",
+            "knowledge-base",
+            "documents",
+            "pdf",
+            "doc",
+            "txt"
+          ]
+        },
+        {
+          "id": "text-content-creation",
+          "question": "How do I add text content directly?",
+          "answer": "You can add text knowledge directly without uploading files, which is perfect for quick content addition, FAQs, or specific information entries.",
+          "steps": [
+            "Navigate to Upload page from the main menu",
+            "Scroll down to the 'Text Content' section",
+            "Select the appropriate department from the dropdown",
+            "Enter a clear, descriptive title in the Title field",
+            "Add your complete text content in the large text area",
+            "Review your content for accuracy and completeness",
+            "Click 'Add Text Content' button to save to the knowledge base"
+          ],
+          "best_practices": [
+            "Use descriptive titles that reflect the content's purpose",
+            "Write clear, comprehensive text that answers common questions",
+            "Include relevant keywords that users might search for",
+            "Structure content with proper formatting when possible"
+          ],
+          "examples": [
+            "FAQ entries with questions and detailed answers",
+            "Policy documents or procedures",
+            "Contact information and directory listings",
+            "Troubleshooting guides and solutions"
+          ],
+          "tags": [
+            "text",
+            "content",
+            "knowledge",
+            "direct-input",
+            "faq",
+            "manual"
+          ]
+        },
+        {
+          "id": "uploaded-files-management",
+          "question": "How do I manage uploaded files?",
+          "answer": "The Uploaded Files tab provides comprehensive tools to view, manage, and organize all your uploaded documents.",
+          "steps": [
+            "Navigate to Upload page and click 'Uploaded Files' tab",
+            "Use the filter dropdown to show 'All Content' or 'My Content'",
+            "Apply department filter to narrow down results",
+            "Use the search bar to find specific files by name",
+            "Click on any file row to view detailed information",
+            "Use action buttons for preview, download, or delete operations"
+          ],
+          "features": [
+            "File information display (name, size, type, upload date)",
+            "Processing status indicators",
+            "Uploader information with admin names",
+            "Download original files",
+            "Delete files with confirmation",
+            "Sorting by various criteria"
+          ],
+          "filters": [
+            "All Content - Shows all files from all admins",
+            "My Content - Shows only files you uploaded",
+            "Department filter - Filter by specific departments",
+            "Search by filename - Find files by name or partial name"
+          ],
+          "tags": [
+            "files",
+            "management",
+            "uploaded",
+            "filter",
+            "search",
+            "download"
+          ]
+        },
+        {
+          "id": "text-knowledge-management",
+          "question": "How do I manage text knowledge entries?",
+          "answer": "The Text Knowledge tab allows you to view, edit, and manage all directly entered text content in the system.",
+          "steps": [
+            "Navigate to Upload page and click 'Text Knowledge' tab",
+            "Use filters to show 'All Content' or 'My Content'",
+            "Apply department and search filters as needed",
+            "Click on any text entry to view full content",
+            "Use 'Edit' button to modify existing text content",
+            "Use 'Delete' button to remove unwanted entries"
+          ],
+          "editing_process": [
+            "Click the 'Edit' button on any text knowledge entry",
+            "Modify the title and/or content in the popup dialog",
+            "Click 'Save Changes' to update the entry",
+            "Changes are immediately available to the chatbot",
+            "Use 'Cancel' to discard changes without saving"
+          ],
+          "features": [
+            "Inline editing capabilities",
+            "Chunk count display for large content",
+            "Creation and modification timestamps",
+            "Admin attribution for accountability",
+            "Search across titles and content"
+          ],
+          "tags": [
+            "text",
+            "knowledge",
+            "edit",
+            "manage",
+            "content",
+            "inline-editing"
+          ]
+        },
+        {
+          "id": "upload-filtering-search",
+          "question": "How do I use the advanced filtering and search features?",
+          "answer": "The Upload page includes powerful filtering and search capabilities to help you find and manage content efficiently.",
+          "filtering_options": [
+            "Content Ownership - Filter by 'All Content' or 'My Content'",
+            "Department Filter - Show content from specific departments only",
+            "File Type Filter - Available in file management for different formats",
+            "Processing Status - Filter by upload/processing status"
+          ],
+          "search_capabilities": [
+            "Filename Search - Find files by name or partial name matching",
+            "Content Search - Search within text knowledge titles and content",
+            "Real-time filtering - Results update as you type",
+            "Case-insensitive matching - Searches ignore letter case"
+          ],
+          "tips": [
+            "Combine filters for more precise results",
+            "Use 'My Content' filter to quickly find your uploads",
+            "Search works across all visible content based on current filters",
+            "Clear filters to see all available content"
+          ],
+          "tags": [
+            "filtering",
+            "search",
+            "advanced",
+            "content-management",
+            "organization"
+          ]
+        },
+        {
+          "id": "upload-errors-troubleshooting",
+          "question": "What should I do if uploads fail or have errors?",
+          "answer": "Upload failures can occur due to various reasons. Here's how to troubleshoot and resolve common issues.",
+          "common_issues": [
+            "File too large - Check file size limits with your administrator",
+            "Unsupported format - Ensure file is in supported format (PDF, DOC, DOCX, TXT, MD)",
+            "Network timeout - Try uploading smaller files or check internet connection",
+            "Processing failure - File may be corrupted or have formatting issues"
+          ],
+          "troubleshooting_steps": [
+            "Check the file format and size before uploading",
+            "Try uploading files one at a time instead of multiple files",
+            "Ensure stable internet connection during upload",
+            "Wait for current uploads to complete before starting new ones",
+            "Contact administrator if problems persist"
+          ],
+          "prevention_tips": [
+            "Use standard file formats and avoid corrupted files",
+            "Keep file sizes reasonable for faster processing",
+            "Ensure files contain readable text content",
+            "Test with smaller files first if having issues"
+          ],
+          "tags": [
+            "troubleshooting",
+            "upload-errors",
+            "failures",
+            "file-issues",
+            "network"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "queries-management",
+      "title": "Queries Management",
+      "icon": "MessageSquare",
+      "description": "Handling pending and answered queries",
+      "faqs": [
+        {
+          "id": "queries-page-overview",
+          "question": "What is the Queries page and how do I use it?",
+          "answer": "The Queries page is the central hub for managing questions that need admin attention. It has two main tabs for pending and answered questions.",
+          "sections": [
+            "Pending Questions Tab - Questions awaiting admin responses",
+            "Answered Questions Tab - Previously resolved questions",
+            "Filter Panel - Filter by department, admin, or sorting options",
+            "Question Cards - Individual question displays with actions"
+          ],
+          "features": [
+            "Real-time question management",
+            "Frequency-based priority system",
+            "Comprehensive filtering options",
+            "Answer dialog with acceptance criteria",
+            "Test in Chat functionality"
+          ],
+          "tags": ["queries", "overview", "pending", "answered", "management"]
+        },
+        {
+          "id": "pending-queries-handling",
+          "question": "How do I handle pending queries from users?",
+          "answer": "Pending queries are questions that the chatbot couldn't answer automatically and require admin intervention.",
+          "steps": [
+            "Navigate to Queries page from the main navigation",
+            "Ensure you're on the 'Pending Questions' tab",
+            "Review the list of unanswered questions with priority indicators",
+            "Click the 'Answer' button on any question you want to respond to",
+            "Read the question carefully and any acceptance criteria provided",
+            "Type your comprehensive answer in the text area provided",
+            "Use 'Test in Chat' button to verify your answer works correctly",
+            "Click 'Submit Answer' to save your response and mark as resolved"
+          ],
+          "tips": [
+            "Questions with higher frequency get priority highlighting",
+            "Include step-by-step instructions when applicable",
+            "Use clear, concise language that users can understand",
+            "Test your answers before submitting to ensure accuracy",
+            "Consider adding related information for comprehensive responses"
+          ],
+          "features": [
+            "Priority-based question ordering",
+            "Acceptance criteria display for context",
+            "Rich text answer input",
+            "Real-time chat testing",
+            "Automatic question resolution"
+          ],
+          "tags": ["queries", "pending", "answer", "respond", "priority"]
+        },
+        {
+          "id": "answered-queries-review",
+          "question": "How do I review and manage answered queries?",
+          "answer": "The Answered Questions tab shows all previously resolved queries, allowing you to review, test, and verify responses.",
+          "steps": [
+            "Navigate to Queries page",
+            "Click on the 'Answered Questions' tab",
+            "Browse through the list of resolved questions",
+            "Use filters to find specific departments, admins, or timeframes",
+            "Click on any question card to view the full question and answer",
+            "Use 'Test in Chat' to verify the answer still works correctly",
+            "Monitor for any questions that might need answer updates"
+          ],
+          "features": [
+            "Complete answer history",
+            "Admin attribution for answers",
+            "Answer timestamp tracking",
+            "Continued testing capabilities",
+            "Quality assurance review"
+          ],
+          "tips": [
+            "Regularly review answered questions for accuracy",
+            "Update answers when policies or procedures change",
+            "Use testing to ensure answers remain relevant",
+            "Monitor user feedback on answered questions"
+          ],
+          "tags": ["queries", "answered", "resolved", "review", "testing"]
+        },
+        {
+          "id": "queries-filtering-sorting",
+          "question": "How do I use the filtering and sorting options in Queries?",
+          "answer": "The Queries page includes comprehensive filtering and sorting tools to help you manage questions efficiently.",
+          "filtering_options": [
+            "Department Filter - Show questions from specific departments",
+            "Admin Filter - Filter by admin who asked or answered questions",
+            "Sort By - Order by date, priority, or department",
+            "Sort Order - Ascending or descending order"
+          ],
+          "steps": [
+            "Use the filter panel at the top of the Queries page",
+            "Select department from the dropdown to filter by department",
+            "Choose admin filter to see questions from specific admins",
+            "Use sort options to organize questions by date, priority, or department",
+            "Toggle sort order between ascending and descending",
+            "Filters apply automatically as you make selections"
+          ],
+          "tips": [
+            "Combine multiple filters for precise results",
+            "Use date sorting to see newest or oldest questions first",
+            "Priority sorting helps identify urgent questions",
+            "Department filtering helps specialized admin focus areas"
+          ],
+          "tags": [
+            "queries",
+            "filtering",
+            "sorting",
+            "organization",
+            "management"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "questions-management",
+      "title": "Questions Overview",
+      "icon": "HelpCircle",
+      "description": "Browsing and analyzing all questions",
+      "faqs": [
+        {
+          "id": "questions-page-overview",
+          "question": "What is the Questions page and how is it different from Queries?",
+          "answer": "The Questions page provides a comprehensive view of ALL questions in the system - both user and admin questions - with advanced analytics and filtering capabilities.",
+          "differences": [
+            "Queries Page - Active question management (pending/answered)",
+            "Questions Page - Historical analysis and browsing of all questions",
+            "Queries focuses on workflow and response management",
+            "Questions focuses on data analysis and content overview"
+          ],
+          "features": [
+            "User Questions and Admin Questions tabs",
+            "Advanced filtering by multiple criteria",
+            "Pagination for large datasets",
+            "Question summaries with AI analysis",
+            "Detailed question popup views"
+          ],
+          "tags": ["questions", "overview", "analysis", "user", "admin"]
+        },
+        {
+          "id": "user-questions-tab",
+          "question": "How do I browse and analyze user questions?",
+          "answer": "The User Questions tab shows all questions submitted by end users through the chatbot interface.",
+          "steps": [
+            "Navigate to Questions page from main menu",
+            "Ensure you're on the 'User Questions' tab",
+            "Use filters to narrow down by department, status, or admin",
+            "Apply sorting by date, priority, or department",
+            "Use pagination to browse through multiple pages of questions",
+            "Click on any question to view detailed information in a popup",
+            "Use 'Test in Chat' to test the question with current system"
+          ],
+          "filtering_options": [
+            "Department - Filter by specific departments",
+            "Status - Filter by pending, processed, or all statuses",
+            "Admin - Filter by admin who handled questions",
+            "Sort by date, priority, or department"
+          ],
+          "features": [
+            "Comprehensive user question history",
+            "Status tracking (pending, processed)",
+            "Context information for each question",
+            "Admin assignment and response tracking",
+            "Real-time testing capabilities"
+          ],
+          "tags": ["questions", "user", "filtering", "analysis", "history"]
+        },
+        {
+          "id": "admin-questions-tab",
+          "question": "How do I manage admin questions?",
+          "answer": "The Admin Questions tab shows questions submitted by administrators, typically for internal clarification or system testing.",
+          "steps": [
+            "Navigate to Questions page",
+            "Click on the 'Admin Questions' tab",
+            "Use the same filtering and sorting options as user questions",
+            "View questions submitted by fellow administrators",
+            "Click on questions to see full details and responses",
+            "Use for training and knowledge sharing purposes"
+          ],
+          "features": [
+            "Internal admin question tracking",
+            "Admin-to-admin knowledge sharing",
+            "Training question examples",
+            "System testing question history",
+            "Response quality examples"
+          ],
+          "tags": ["questions", "admin", "internal", "training", "testing"]
+        },
+        {
+          "id": "questions-summarization",
+          "question": "How do I use the AI question summarization feature?",
+          "answer": "The Questions page includes an AI-powered summarization feature that analyzes pending user questions and provides insights.",
+          "steps": [
+            "Navigate to Questions page and go to User Questions tab",
+            "Click the 'Summarize Pending Questions' button in the top right",
+            "Wait for the AI to analyze all pending questions",
+            "Review the generated summary in the popup dialog",
+            "Examine question categories and common themes",
+            "Use insights to improve your knowledge base and responses"
+          ],
+          "summary_features": [
+            "Total pending questions count",
+            "Categorized question themes",
+            "Common question examples",
+            "Usage patterns and trends",
+            "Recommendations for content improvement"
+          ],
+          "tips": [
+            "Run summaries regularly to identify patterns",
+            "Use category insights to improve department routing",
+            "Add common question themes to your knowledge base",
+            "Share summaries with team for collaborative improvement"
+          ],
+          "tags": ["questions", "summarization", "ai", "analysis", "insights"]
+        },
+        {
+          "id": "questions-detailed-view",
+          "question": "How do I view detailed information for individual questions?",
+          "answer": "Click on any question to open a detailed popup with comprehensive information about the question and its handling.",
+          "details_included": [
+            "Full question text and context",
+            "User or admin information",
+            "Department classification",
+            "Status and timestamps",
+            "Answer information (if answered)",
+            "Priority and frequency data"
+          ],
+          "actions_available": [
+            "Test in Chat - Test the question with current chatbot",
+            "View context information",
+            "See admin responses and timestamps",
+            "Check question priority and frequency"
+          ],
+          "tags": ["questions", "details", "popup", "information", "context"]
+        }
+      ]
+    },
+    {
+      "id": "department-management",
+      "title": "Department Management",
+      "icon": "Building",
+      "description": "Managing departments and routing",
+      "faqs": [
+        {
+          "id": "department-keywords",
+          "question": "How do I manage department keywords for routing?",
+          "answer": "Keywords help the system route questions to the correct department automatically. You can add, edit, and remove keywords for each department.",
+          "steps": [
+            "Navigate to Departments page",
+            "Go to 'Metadata Management' tab",
+            "Select the department you want to manage",
+            "Add new keywords in the input field (comma-separated)",
+            "Click 'Add Keywords' to save",
+            "Edit existing keywords by clicking the edit icon",
+            "Delete keywords using the trash icon",
+            "Keywords are automatically saved and active immediately"
+          ],
+          "tips": [
+            "Use relevant terms that users might mention",
+            "Include synonyms and common variations",
+            "Avoid overly generic keywords that might cause conflicts"
+          ],
+          "tags": ["departments", "keywords", "routing", "metadata"]
+        },
+        {
+          "id": "department-descriptions",
+          "question": "How do I manage department descriptions?",
+          "answer": "Department descriptions help provide context about what each department handles and can improve routing accuracy.",
+          "steps": [
+            "Navigate to Departments page",
+            "Go to 'Metadata Management' tab",
+            "Scroll to 'Descriptions Management' section",
+            "Select the department from the dropdown",
+            "Enter or edit the department description",
+            "Click 'Update Description' to save changes",
+            "The description will be used by the system for better routing"
+          ],
+          "tags": ["departments", "descriptions", "context", "routing"]
+        },
+        {
+          "id": "department-testing",
+          "question": "How do I test department detection?",
+          "answer": "Use the Detection Testing feature to verify that questions are being routed to the correct departments.",
+          "steps": [
+            "Navigate to Departments page",
+            "Go to 'Detection Testing' tab",
+            "Enter a sample question in the text area",
+            "Click 'Test Detection' to analyze the question",
+            "Review the results showing detected department and confidence",
+            "If results are incorrect, adjust keywords or descriptions",
+            "Re-test to verify improvements"
+          ],
+          "tags": ["departments", "testing", "detection", "routing"]
+        },
+        {
+          "id": "routing-failures",
+          "question": "How do I handle department routing failures?",
+          "answer": "The system tracks questions that couldn't be properly routed to departments, allowing you to improve the routing logic.",
+          "steps": [
+            "Navigate to Departments page",
+            "Go to 'Department Failures' tab",
+            "Review questions that failed to route correctly",
+            "Analyze the failure reasons and patterns",
+            "Update keywords or descriptions based on failures",
+            "Process or discard failed routing attempts",
+            "Use 'Refresh Router Data' to update the system"
+          ],
+          "tags": ["departments", "failures", "routing", "troubleshooting"]
+        }
+      ]
+    },
+    {
+      "id": "admin-management",
+      "title": "Super Admin Features",
+      "icon": "Shield",
+      "description": "Advanced administration (Super Admin only)",
+      "faqs": [
+        {
+          "id": "admin-access",
+          "question": "How do I access the Super Admin panel?",
+          "answer": "The Admin panel is only available to users with Super Admin role. It provides access to advanced system management features.",
+          "steps": [
+            "Ensure you have Super Admin role assigned",
+            "Navigate to Admin page from the main menu",
+            "If you don't see the Admin option, you don't have sufficient permissions",
+            "Contact your system administrator to request Super Admin access"
+          ],
+          "restrictions": [
+            "Only Super Admins can access this section",
+            "Regular admins will see an 'Access Denied' message",
+            "Super Admin privileges are required for database operations"
+          ],
+          "tags": ["admin", "super-admin", "access", "permissions"]
+        },
+        {
+          "id": "user-management",
+          "question": "How do I manage admin users?",
+          "answer": "Super Admins can create, edit, and manage other administrator accounts in the system.",
+          "steps": [
+            "Navigate to Admin page",
+            "Go to 'Admin Management' tab",
+            "Click 'Add Admin' to create new administrator",
+            "Fill in name, email, password, and role information",
+            "Enable/disable admin accounts as needed",
+            "Edit existing admins by clicking the edit icon",
+            "Reset passwords using the key icon",
+            "Delete admins using the trash icon (with confirmation)"
+          ],
+          "roles": [
+            "admin - Regular administrator with standard access",
+            "super_admin - Full system access including user management"
+          ],
+          "tags": ["admin", "users", "management", "create", "edit"]
+        },
+        {
+          "id": "database-operations",
+          "question": "How do I perform database operations?",
+          "answer": "Super Admins can perform various database operations including data deletion and system maintenance. These operations are irreversible and should be used with extreme caution.",
+          "steps": [
+            "Navigate to Admin page",
+            "Go to 'Database Management' tab",
+            "Review current database statistics",
+            "Choose the appropriate deletion operation",
+            "Type the exact confirmation text when prompted",
+            "Confirm the operation (this cannot be undone)",
+            "Wait for the operation to complete"
+          ],
+          "operations": [
+            "Delete All Files - Removes all uploaded files and vectors",
+            "Delete All Text Knowledge - Removes all text content",
+            "Delete All User Questions - Removes all user queries",
+            "Delete All Admin Questions - Removes all admin questions",
+            "Delete All Department Failures - Clears routing failures",
+            "Delete All Response Times - Clears performance data",
+            "Delete Entire Vector Database - Complete database reset"
+          ],
+          "warnings": [
+            "All database operations are irreversible",
+            "Always backup important data before operations",
+            "System may be temporarily unavailable during operations"
+          ],
+          "tags": [
+            "database",
+            "operations",
+            "delete",
+            "maintenance",
+            "super-admin"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chatbot-testing",
+      "title": "Chatbot Testing",
+      "icon": "Bot",
+      "description": "Testing chatbot functionality",
+      "faqs": [
+        {
+          "id": "floating-chatbot",
+          "question": "How do I test the chatbot functionality?",
+          "answer": "Use the floating chatbot widget available on all pages to test questions and responses in real-time.",
+          "steps": [
+            "Look for the chat bubble icon in the bottom-right corner",
+            "Click the icon to open the chatbot interface",
+            "Type your test question in the input field",
+            "Press Enter or click Send to submit",
+            "Review the chatbot's response",
+            "Use 'Test in Chat' buttons from Questions/Queries pages to automatically populate test questions"
+          ],
+          "features": [
+            "Real-time testing of chatbot responses",
+            "Direct integration with question management",
+            "Immediate feedback on answer quality",
+            "Available on all admin pages"
+          ],
+          "tags": ["chatbot", "testing", "floating", "widget"]
+        },
+        {
+          "id": "test-from-questions",
+          "question": "How do I test specific questions from the admin interface?",
+          "answer": "Many sections include 'Test in Chat' buttons that automatically populate the chatbot with specific questions for testing.",
+          "steps": [
+            "Navigate to Questions or Queries page",
+            "Find the question you want to test",
+            "Click the 'Test in Chat' button next to the question",
+            "The floating chatbot will open with the question pre-filled",
+            "Submit the question to see the current response",
+            "Compare with expected answers or make improvements as needed"
+          ],
+          "tags": ["testing", "questions", "chat", "verification"]
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "title": "Troubleshooting",
+      "icon": "AlertTriangle",
+      "description": "Common issues and solutions",
+      "faqs": [
+        {
+          "id": "login-issues",
+          "question": "What should I do if I can't log in?",
+          "answer": "Login issues can occur due to various reasons. Follow these troubleshooting steps to resolve access problems.",
+          "steps": [
+            "Verify your email address is correct",
+            "Check that your password is entered correctly",
+            "Ensure your account is enabled and verified",
+            "Clear browser cache and cookies",
+            "Try using a different browser or incognito mode",
+            "Contact your Super Administrator if issues persist"
+          ],
+          "common-causes": [
+            "Incorrect credentials",
+            "Account disabled by administrator",
+            "Browser cache issues",
+            "Network connectivity problems",
+            "Server maintenance"
+          ],
+          "tags": ["troubleshooting", "login", "access", "problems"]
+        },
+        {
+          "id": "slow-performance",
+          "question": "What should I do if the system is running slowly?",
+          "answer": "Performance issues can affect your experience. Here are steps to improve system responsiveness.",
+          "steps": [
+            "Check your internet connection speed",
+            "Close unnecessary browser tabs",
+            "Clear browser cache and cookies",
+            "Use a modern, updated browser",
+            "Check the Dashboard for system status",
+            "Contact support if issues persist across multiple users"
+          ],
+          "tips": [
+            "Large file uploads may temporarily slow the system",
+            "Complex queries may take longer to process",
+            "System performance is monitored on the Dashboard"
+          ],
+          "tags": ["troubleshooting", "performance", "slow", "optimization"]
+        },
+        {
+          "id": "upload-failures",
+          "question": "Why are my file uploads failing?",
+          "answer": "File upload issues can occur due to various factors. Follow these steps to resolve upload problems.",
+          "steps": [
+            "Check file size - very large files may timeout",
+            "Verify file format is supported (PDF, DOC, DOCX, TXT, MD)",
+            "Ensure stable internet connection",
+            "Try uploading files one at a time",
+            "Check available storage space",
+            "Contact administrator if problems persist"
+          ],
+          "limitations": [
+            "Maximum file size limits may apply",
+            "Certain file types may be restricted",
+            "Network timeouts on slow connections",
+            "Storage quota limitations"
+          ],
+          "tags": ["troubleshooting", "upload", "files", "failure"]
+        },
+        {
+          "id": "missing-data",
+          "question": "What should I do if data appears to be missing?",
+          "answer": "If you notice missing information or data discrepancies, follow these diagnostic steps.",
+          "steps": [
+            "Refresh the page to reload data",
+            "Check filters and search settings",
+            "Verify you have proper permissions for the data",
+            "Try logging out and back in",
+            "Contact Super Administrator if data loss is suspected",
+            "Check system logs if available"
+          ],
+          "tags": ["troubleshooting", "missing", "data", "permissions"]
+        }
+      ]
+    },
+    {
+      "id": "best-practices",
+      "title": "Best Practices",
+      "icon": "CheckCircle",
+      "description": "Tips for effective system usage",
+      "faqs": [
+        {
+          "id": "content-organization",
+          "question": "How should I organize content for best results?",
+          "answer": "Proper content organization improves chatbot accuracy and system maintenance.",
+          "guidelines": [
+            "Use clear, descriptive titles for text content",
+            "Organize content by department appropriately",
+            "Keep file names descriptive and consistent",
+            "Regularly review and update outdated content",
+            "Remove duplicate or conflicting information"
+          ],
+          "tips": [
+            "Group related topics together",
+            "Use consistent terminology across content",
+            "Include context and examples in answers",
+            "Test content regularly with chatbot"
+          ],
+          "tags": ["best-practices", "organization", "content", "quality"]
+        },
+        {
+          "id": "answer-quality",
+          "question": "How do I write effective answers to user questions?",
+          "answer": "Quality answers improve user satisfaction and reduce repeat questions.",
+          "guidelines": [
+            "Provide clear, concise answers",
+            "Include step-by-step instructions when appropriate",
+            "Use simple language that users can understand",
+            "Anticipate follow-up questions",
+            "Include relevant examples or use cases",
+            "Test answers before finalizing"
+          ],
+          "structure": [
+            "Start with a direct answer to the question",
+            "Provide detailed steps if needed",
+            "Include helpful tips or warnings",
+            "End with additional resources if available"
+          ],
+          "tags": ["best-practices", "answers", "quality", "writing"]
+        },
+        {
+          "id": "system-maintenance",
+          "question": "What regular maintenance should I perform?",
+          "answer": "Regular maintenance keeps the system running smoothly and ensures data quality.",
+          "tasks": [
+            "Review and answer pending questions regularly",
+            "Update department keywords based on user patterns",
+            "Clean up outdated or duplicate content",
+            "Monitor system performance metrics",
+            "Review and process routing failures",
+            "Update admin user accounts as needed"
+          ],
+          "schedule": [
+            "Daily: Check pending questions and system status",
+            "Weekly: Review upload content and answer quality",
+            "Monthly: Update department settings and clean data",
+            "Quarterly: Review user permissions and system usage"
+          ],
+          "tags": ["best-practices", "maintenance", "regular", "system"]
+        }
+      ]
+    }
+  ],
+  "quickLinks": [
+    {
+      "title": "Login Issues",
+      "category": "troubleshooting",
+      "faqId": "login-issues"
+    },
+    {
+      "title": "Upload Files",
+      "category": "upload-management",
+      "faqId": "file-upload"
+    },
+    {
+      "title": "Answer Questions",
+      "category": "query-management",
+      "faqId": "pending-queries"
+    },
+    {
+      "title": "Department Setup",
+      "category": "department-management",
+      "faqId": "department-keywords"
+    },
+    {
+      "title": "Test Chatbot",
+      "category": "chatbot-testing",
+      "faqId": "floating-chatbot"
+    }
+  ]
+}
