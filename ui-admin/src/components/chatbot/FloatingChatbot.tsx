@@ -38,7 +38,7 @@ const FloatingChatbot = () => {
   const [userId] = useState(() => {
     let storedUserId = localStorage.getItem("chatbot_user_id");
     if (!storedUserId) {
-      storedUserId = "user_" + crypto.randomUUID();
+      storedUserId = crypto.randomUUID();
       localStorage.setItem("chatbot_user_id", storedUserId);
     }
     return storedUserId;
