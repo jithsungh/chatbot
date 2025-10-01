@@ -338,7 +338,7 @@ export class ApiClient {
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
     const response = await fetch(
-      `${API_BASE_URL}/getuserquestions?${searchParams.toString()}`,
+      `${API_BASE_URL}/api/read/getuserquestions?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }
@@ -385,7 +385,7 @@ export class ApiClient {
     if (params.limit) searchParams.append("limit", params.limit.toString());
     if (params.offset) searchParams.append("offset", params.offset.toString());
     const response = await fetch(
-      `${API_BASE_URL}/getadminquestions?${searchParams.toString()}`,
+      `${API_BASE_URL}/api/read/getadminquestions?${searchParams.toString()}`,
       {
         headers: this.getAuthHeaders(),
       }

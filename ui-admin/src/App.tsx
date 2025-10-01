@@ -13,6 +13,7 @@ import Queries from "./pages/Queries";
 import Questions from "./pages/Questions";
 import AdminPage from "./pages/DatabasePage";
 import DepartmentManagement from "./pages/DepartmentManagement";
+import FAQs from "./pages/FAQs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,9 +37,10 @@ const App = () => (
             >
               {" "}
               <Route index element={<Dashboard />} />
-              <Route path="upload" element={<Upload />} />
+              <Route path="upload" element={<Upload />} />{" "}
               <Route path="queries" element={<Queries />} />
               <Route path="questions" element={<Questions />} />
+              <Route path="faqs" element={<FAQs />} />
               <Route path="departments" element={<DepartmentManagement />} />
               <Route path="admin" element={<AdminPage />} />
             </Route>

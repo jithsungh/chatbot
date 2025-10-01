@@ -20,6 +20,7 @@ import {
   MessageCircle,
   Database,
   Building,
+  BookOpen,
 } from "lucide-react";
 import LogoutDialog from "@/components/dialogs/LogoutDialog";
 
@@ -34,6 +35,7 @@ const Navbar = () => {
     { path: "/queries", label: "Queries", icon: MessageSquare },
     { path: "/questions", label: "Questions", icon: HelpCircle },
     { path: "/departments", label: "Departments", icon: Building },
+    { path: "/faqs", label: "Help & FAQs", icon: BookOpen },
     // Only show Admin panel for super admins
     ...(admin?.role === "super_admin"
       ? [{ path: "/admin", label: "Admin", icon: Database }]
