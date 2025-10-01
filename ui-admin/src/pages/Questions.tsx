@@ -82,14 +82,11 @@ interface QuestionPopupProps {
 }
 
 interface SummaryData {
-  summary: string;
-  total_pending: number;
-  categories: Array<{
-    category: string;
-    count: number;
-    examples: string[];
-  }>;
-  generated_at: string;
+  success: boolean;
+  questions_added: number;
+  questions_processed: number;
+  errors: string[];
+  processed_by: string;
 }
 
 // Question Popup Component
@@ -409,23 +406,33 @@ const Questions = () => {
       setLoading(false);
     }
   };
-
   const handleSummarizeQuestions = async () => {
     setSummarizing(true);
     try {
-      const summary = await apiClient.summarizePendingQuestions();
-      setSummaryData(summary);
+      const result = await apiClient.summarizePendingQuestions();
+      setSummaryData(result);
       setShowSummary(true);
-      toast({
-        title: "Summary generated",
-        description: `Summarized ${summary.total_pending} pending questions`,
-      });
+
+      if (result.success) {
+        toast({
+          title: "Processing completed",
+          description: `Added: ${result.questions_added}, Processed: ${result.questions_processed}`,
+        });
+      } else {
+        toast({
+          title: "Processing completed with issues",
+          description: `Errors: ${result.errors.length}`,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error("Failed to summarize questions:", error);
+      console.error("Failed to process questions:", error);
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to generate summary",
+          error instanceof Error
+            ? error.message
+            : "Failed to process questions",
         variant: "destructive",
       });
     } finally {
@@ -629,22 +636,26 @@ const Questions = () => {
           <p className="text-muted-foreground mt-1">
             Browse and analyze all questions from users and admins
           </p>
-        </div>
+        </div>{" "}
         {questionType === "user" && (
           <Button
             onClick={handleSummarizeQuestions}
-            disabled={summarizing || safeCurrentQuestions.length === 0}
+            disabled={
+              summarizing ||
+              !safeCurrentQuestions ||
+              safeCurrentQuestions.length === 0
+            }
             className="gradient-primary"
           >
             {summarizing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Summarizing...
+                Processing...
               </>
             ) : (
               <>
                 <FileText className="w-4 h-4 mr-2" />
-                Summarize Pending Questions
+                Process Questions
               </>
             )}
           </Button>
@@ -654,73 +665,88 @@ const Questions = () => {
       {/* Summary Dialog */}
       <Dialog open={showSummary} onOpenChange={setShowSummary}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          {" "}
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <FileText className="w-5 h-5" />
-              <span>Questions Summary</span>
+              <span>Questions Processing Results</span>
             </DialogTitle>
             <DialogDescription>
-              AI-generated summary of all pending user questions
+              Results of the questions processing operation
             </DialogDescription>
           </DialogHeader>
           {summaryData && (
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Overview</CardTitle>
+                  <CardTitle className="text-base">
+                    Processing Results
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Generated on:{" "}
-                    {new Date(summaryData.generated_at).toLocaleString()}
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {summaryData.summary}
-                  </p>
-                  <div className="mt-4 p-4 bg-secondary rounded-lg">
-                    <p className="text-sm font-medium">
-                      Total Pending Questions:{" "}
-                      <span className="text-primary">
-                        {summaryData.total_pending}
-                      </span>
-                    </p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-secondary rounded-lg">
+                        <p className="text-sm font-medium">Questions Added</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {summaryData.questions_added}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-secondary rounded-lg">
+                        <p className="text-sm font-medium">
+                          Questions Processed
+                        </p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {summaryData.questions_processed}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg border">
+                      <div className="flex items-center space-x-2 mb-2">
+                        {summaryData.success ? (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-red-600" />
+                        )}
+                        <p className="text-sm font-medium">
+                          Status:{" "}
+                          {summaryData.success
+                            ? "Success"
+                            : "Completed with errors"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Processed by: {summaryData.processed_by}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
-              </Card>
-
-              {summaryData.categories.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Question Categories
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {summaryData.categories.map((category, index) => (
-                        <div key={index} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium">{category.category}</h4>
-                            <Badge variant="secondary">
-                              {category.count} questions
-                            </Badge>
+              </Card>{" "}
+              {summaryData.errors &&
+                Array.isArray(summaryData.errors) &&
+                summaryData.errors.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center space-x-2">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                        <span>Errors ({summaryData.errors.length})</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {summaryData.errors.map((error, index) => (
+                          <div
+                            key={index}
+                            className="p-3 bg-red-50 border border-red-200 rounded-lg"
+                          >
+                            <p className="text-sm text-red-800">{error}</p>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Examples:
-                          </p>
-                          <ul className="text-xs space-y-1">
-                            {category.examples.map((example, idx) => (
-                              <li key={idx} className="text-muted-foreground">
-                                • {example}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
             </div>
           )}
         </DialogContent>
@@ -849,8 +875,12 @@ const Questions = () => {
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5 text-primary" />
                 <span>User Questions</span>
-                <Badge variant="outline">{userQuestions.length}</Badge>
-              </CardTitle>
+                <Badge variant="outline">
+                  {questionType === "user"
+                    ? safeCurrentQuestions?.length || 0
+                    : userQuestions.length}
+                </Badge>
+              </CardTitle>{" "}
               <CardDescription>
                 Questions submitted by end users through the chatbot
               </CardDescription>
@@ -864,7 +894,7 @@ const Questions = () => {
                     </div>
                   ))}
                 </div>
-              ) : safeCurrentQuestions.length === 0 ? (
+              ) : !safeCurrentQuestions || safeCurrentQuestions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <HelpCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium mb-2">No questions found</p>
@@ -872,7 +902,8 @@ const Questions = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {safeCurrentQuestions.map(renderQuestionCard)}
+                  {safeCurrentQuestions &&
+                    safeCurrentQuestions.map(renderQuestionCard)}
                 </div>
               )}
             </CardContent>
@@ -885,8 +916,12 @@ const Questions = () => {
               <CardTitle className="flex items-center space-x-2">
                 <Shield className="w-5 h-5 text-accent" />
                 <span>Admin Questions</span>
-                <Badge variant="outline">{adminQuestions.length}</Badge>
-              </CardTitle>
+                <Badge variant="outline">
+                  {questionType === "admin"
+                    ? safeCurrentQuestions?.length || 0
+                    : adminQuestions.length}
+                </Badge>
+              </CardTitle>{" "}
               <CardDescription>
                 Internal questions from admin users requiring responses
               </CardDescription>
@@ -900,7 +935,7 @@ const Questions = () => {
                     </div>
                   ))}
                 </div>
-              ) : safeCurrentQuestions.length === 0 ? (
+              ) : !safeCurrentQuestions || safeCurrentQuestions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <HelpCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium mb-2">No questions found</p>
@@ -908,16 +943,16 @@ const Questions = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {safeCurrentQuestions.map(renderQuestionCard)}
+                  {safeCurrentQuestions &&
+                    safeCurrentQuestions.map(renderQuestionCard)}
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
       {/* Pagination */}
-      {!loading && safeCurrentQuestions.length > 0 && (
+      {!loading && safeCurrentQuestions && safeCurrentQuestions.length > 0 && (
         <div className="flex items-center justify-center space-x-4">
           <Button
             variant="outline"

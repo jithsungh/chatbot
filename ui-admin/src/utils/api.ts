@@ -522,14 +522,11 @@ export class ApiClient {
     });
 
     return this.handleResponse<{
-      summary: string;
-      total_pending: number;
-      categories: Array<{
-        category: string;
-        count: number;
-        examples: string[];
-      }>;
-      generated_at: string;
+      success: boolean;
+      questions_added: number;
+      questions_processed: number;
+      errors: string[];
+      processed_by: string;
     }>(response);
   }
 
