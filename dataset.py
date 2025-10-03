@@ -146,17 +146,20 @@ Important: Respond ONLY with the JSON array, no additional text or formatting.""
 
         return prompt
 
-    def parse_llm_response(self, response_text: str) -> List[Dict[str, str]]:
+    def parse_llm_response(self, response_text) -> List[Dict[str, str]]:
         """Parse the LLM response and extract Q&A pairs"""
         try:
-            # Clean the response text
-            cleaned_response = response_text.strip()
-            
             # Handle different response formats
+            cleaned_response = ""
             if hasattr(response_text, 'content'):
                 cleaned_response = response_text.content.strip()
             elif hasattr(response_text, 'text'):
                 cleaned_response = response_text.text.strip()
+            elif isinstance(response_text, str):
+                cleaned_response = response_text.strip()
+            else:
+                # For AIMessage or other objects, try to get string representation
+                cleaned_response = str(response_text).strip()
             
             # Try to find JSON array in the response
             start_idx = cleaned_response.find('[')
