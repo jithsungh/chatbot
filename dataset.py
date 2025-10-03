@@ -24,7 +24,7 @@ import chromadb
 from datetime import datetime
 import os
 
-from src.utils.LLMClientOpenAI import LLMClientOpenAI
+from src.utils.LLMClientGemma import LLMClientGemma
 from src.config import Config
 
 # Configure logging
@@ -44,7 +44,7 @@ class DatasetGenerator:
         self.chromadb_path = Config.CHROMADB_PATH
         self.collection_name = Config.COLLECTION_NAME
         self.output_file = "qa.jsonl"
-        self.rate_limit_delay = 2.5  # 2.5 seconds between requests (24 req/min, safe buffer)
+        self.rate_limit_delay = 4.0  # 4.0 seconds between requests (15 req/min, safer buffer)
         
         # Initialize ChromaDB
         try:
@@ -55,10 +55,9 @@ class DatasetGenerator:
         except Exception as e:
             logger.error(f"❌ Failed to connect to ChromaDB: {e}")
             raise
-        
-        # Initialize LLM client
+          # Initialize LLM client
         try:
-            self.llm_client = LLMClientOpenAI()
+            self.llm_client = LLMClientGemma()
             logger.info("✅ LLM client initialized successfully")
         except Exception as e:
             logger.error(f"❌ Failed to initialize LLM client: {e}")
@@ -164,9 +163,9 @@ Important: Respond ONLY with the JSON array, no additional text or formatting.""
             # Try to find JSON array in the response
             start_idx = cleaned_response.find('[')
             end_idx = cleaned_response.rfind(']') + 1
-            
             if start_idx == -1 or end_idx == 0:
                 logger.error("❌ No JSON array found in LLM response")
+                logger.error(f"🔍 Raw response (first 500 chars): {cleaned_response[:500]}")
                 return []
             
             json_str = cleaned_response[start_idx:end_idx]
