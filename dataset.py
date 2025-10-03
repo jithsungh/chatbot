@@ -62,10 +62,10 @@ class DatasetGenerator:
         except Exception as e:
             logger.error(f"❌ Failed to initialize LLM client: {e}")
             raise
-        
         self.processed_count = 0
         self.total_qa_pairs = 0
         self.failed_generations = 0
+        self.failed_documents = []  # Track failed documents for retry
 
     def get_all_documents(self) -> List[Dict[str, Any]]:
         """Retrieve all documents from the ChromaDB collection"""
@@ -278,8 +278,7 @@ Important: Respond ONLY with the JSON array, no additional text or formatting.""
                 logger.info(f"📄 Processing document {idx}/{total_documents}")
                 logger.info(f"🆔 Document ID: {document['id']}")
                 logger.info(f"{'='*60}")
-                
-                # Generate Q&A pairs
+                  # Generate Q&A pairs
                 qa_pairs = self.generate_qa_pairs_for_document(document)
                 
                 if qa_pairs:
@@ -290,10 +289,12 @@ Important: Respond ONLY with the JSON array, no additional text or formatting.""
                         logger.info(f"✅ Document {idx} processed successfully")
                     else:
                         self.failed_generations += 1
-                        logger.error(f"❌ Failed to save Q&A pairs for document {idx}")
+                        self.failed_documents.append(document)  # Add to retry list
+                        logger.error(f"❌ Failed to save Q&A pairs for document {idx} - added to retry list")
                 else:
                     self.failed_generations += 1
-                    logger.error(f"❌ No Q&A pairs generated for document {idx}")
+                    self.failed_documents.append(document)  # Add to retry list
+                    logger.error(f"❌ No Q&A pairs generated for document {idx} - added to retry list")
                 
                 # Progress update
                 progress = (idx / total_documents) * 100
@@ -308,6 +309,9 @@ Important: Respond ONLY with the JSON array, no additional text or formatting.""
                     eta_seconds = remaining_docs * avg_time_per_doc
                     eta_minutes = eta_seconds / 60
                     logger.info(f"⏰ Estimated time remaining: {eta_minutes:.1f} minutes")
+            
+            # Retry failed documents until no failures remain
+            self.retry_failed_documents()
         
         except KeyboardInterrupt:
             logger.warning("⚠️ Process interrupted by user")
@@ -332,6 +336,77 @@ Important: Respond ONLY with the JSON array, no additional text or formatting.""
                 logger.info(f"📊 Average Q&A pairs per document: {avg_pairs_per_doc:.1f}")
             
             logger.info("🏁 Dataset generation completed!")
+
+    def retry_failed_documents(self):
+        """Retry processing failed documents until no failures remain"""
+        retry_round = 1
+        max_retry_rounds = 3  # Maximum number of retry rounds to prevent infinite loops
+        
+        while self.failed_documents and retry_round <= max_retry_rounds:
+            logger.info(f"\n{'='*60}")
+            logger.info(f"🔄 RETRY ROUND {retry_round}")
+            logger.info(f"📋 Retrying {len(self.failed_documents)} failed documents")
+            logger.info(f"{'='*60}")
+            
+            # Copy the current failed documents list and clear the original
+            documents_to_retry = self.failed_documents.copy()
+            self.failed_documents.clear()
+            retry_failures = 0
+            retry_successes = 0
+            
+            for idx, document in enumerate(documents_to_retry, 1):
+                logger.info(f"\n🔄 RETRY {retry_round}.{idx}: Processing document {document['id']}")
+                logger.info(f"📝 Content length: {len(document['content'])} characters")
+                logger.info(f"🏢 Department: {document['metadata'].get('department', 'Unknown')}")
+                
+                # Generate Q&A pairs with enhanced rate limiting for retries
+                enhanced_delay = self.rate_limit_delay * 1.5  # 50% longer delay for retries
+                logger.info(f"⏳ Applying enhanced rate limit delay: {enhanced_delay} seconds")
+                time.sleep(enhanced_delay)
+                
+                qa_pairs = self.generate_qa_pairs_for_document(document)
+                
+                if qa_pairs:
+                    # Save to file
+                    if self.save_qa_pairs(qa_pairs):
+                        self.total_qa_pairs += len(qa_pairs)
+                        self.processed_count += 1
+                        retry_successes += 1
+                        logger.info(f"✅ RETRY {retry_round}.{idx}: Document processed successfully")
+                    else:
+                        self.failed_documents.append(document)  # Add back to retry list
+                        retry_failures += 1
+                        logger.error(f"❌ RETRY {retry_round}.{idx}: Failed to save Q&A pairs - will retry")
+                else:
+                    self.failed_documents.append(document)  # Add back to retry list
+                    retry_failures += 1
+                    logger.error(f"❌ RETRY {retry_round}.{idx}: No Q&A pairs generated - will retry")
+                
+                # Progress update for retry round
+                progress = (idx / len(documents_to_retry)) * 100
+                logger.info(f"📊 RETRY {retry_round} Progress: {progress:.1f}% ({idx}/{len(documents_to_retry)})")
+            
+            # Summary for this retry round
+            logger.info(f"\n📊 RETRY ROUND {retry_round} SUMMARY:")
+            logger.info(f"✅ Successful: {retry_successes}")
+            logger.info(f"❌ Failed: {retry_failures}")
+            logger.info(f"📝 Total Q&A pairs so far: {self.total_qa_pairs}")
+            
+            if not self.failed_documents:
+                logger.info(f"🎉 All documents processed successfully after {retry_round} retry round(s)!")
+                break
+            elif retry_round >= max_retry_rounds:
+                logger.warning(f"⚠️ Maximum retry rounds ({max_retry_rounds}) reached. {len(self.failed_documents)} documents still failed.")
+                logger.warning("💡 You may want to manually inspect these documents or adjust the prompt/rate limiting.")
+                
+                # Log the IDs of documents that still failed
+                failed_ids = [doc['id'] for doc in self.failed_documents]
+                logger.warning(f"🆔 Failed document IDs: {failed_ids}")
+                break
+            else:
+                logger.info(f"🔄 Proceeding to retry round {retry_round + 1} with {len(self.failed_documents)} documents")
+            
+            retry_round += 1
 
 
 def main():
