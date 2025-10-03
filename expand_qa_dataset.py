@@ -114,6 +114,9 @@ Requirements:
 3. Make it sound natural and conversational
 4. Don't add new information or change the scope
 5. Return ONLY the rephrased question, no additional text
+6. The questions should be in User/ Employee pov, not randomly generating questions..
+7. Each question should be standalone, not dependent on previous questions, descriptive.
+8. if the input question is not like this user's pov, standalone question, descriptive, then rephrase it to be like this if possible or drop it.
 
 Rephrased Question:"""
 

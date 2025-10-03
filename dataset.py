@@ -121,7 +121,7 @@ Document Content:
 
 Requirements:
 1. Create exactly 5-7 question-answer pairs
-2. Questions should be natural and varied (what, how, when, why, who, etc.)
+2. Questions should be natural and varied and like the user perspective.(what, how, when, why, who, etc.)
 3. Answers should be comprehensive but concise
 4. Cover different topics/aspects from the document
 5. Questions should be specific to the content provided
@@ -130,7 +130,7 @@ Requirements:
 Format your response as a JSON array with this exact structure:
 [
   {{
-    "instruction": "Your question here?",
+    "instruction": "Your question here? - standalone question, descriptive",
     "input": "Relevant excerpt from document content",
     "output": "Complete answer based on the document"
   }},
@@ -141,7 +141,11 @@ Format your response as a JSON array with this exact structure:
   }}
 ]
 
-Important: Respond ONLY with the JSON array, no additional text or formatting."""
+Important: Respond ONLY with the JSON array, no additional text or formatting.
+Make sure the JSON is valid and properly formatted.
+
+not randomly generated questions, but based on the content provided., the questions should serve employee queries or new joinee doubts in an organization.
+"""
 
         return prompt
 
@@ -409,6 +413,166 @@ Important: Respond ONLY with the JSON array, no additional text or formatting.""
             retry_round += 1
 
 
+def retry_specific_document(document_id: str, target_qa_count: int = 12):
+    """
+    Retry generating Q&A pairs for a specific document ID with enhanced parameters
+    
+    Args:
+        document_id: The specific document ID to retry
+        target_qa_count: Target number of Q&A pairs to generate (10-15)
+    """
+    logger.info(f"\n{'='*60}")
+    logger.info(f"🎯 SPECIFIC DOCUMENT RETRY")
+    logger.info(f"🆔 Target Document ID: {document_id}")
+    logger.info(f"📊 Target Q&A pairs: {target_qa_count}")
+    logger.info(f"{'='*60}")
+    
+    try:
+        # Initialize components
+        generator = DatasetGenerator()
+        
+        # Retrieve the specific document
+        logger.info(f"🔍 Retrieving document {document_id} from ChromaDB...")
+        results = generator.collection.get(
+            ids=[document_id],
+            include=["documents", "metadatas"]
+        )
+        
+        if not results["ids"]:
+            logger.error(f"❌ Document {document_id} not found in collection")
+            return False
+        
+        # Extract document data
+        document = {
+            "id": results["ids"][0],
+            "content": results["documents"][0],
+            "metadata": results["metadatas"][0] or {}
+        }
+        
+        logger.info(f"✅ Document retrieved successfully")
+        logger.info(f"📝 Content length: {len(document['content'])} characters")
+        logger.info(f"🏢 Department: {document['metadata'].get('department', 'Unknown')}")
+        logger.info(f"📋 Title: {document['metadata'].get('title', 'Unknown')}")
+        
+        # Generate enhanced prompt for more Q&A pairs
+        enhanced_prompt = generate_enhanced_qa_prompt(document['content'], document['metadata'], target_qa_count)
+        
+        # Apply rate limiting
+        logger.info(f"⏳ Applying rate limit delay: {generator.rate_limit_delay} seconds")
+        time.sleep(generator.rate_limit_delay)
+        
+        # Get response from LLM with enhanced prompt
+        logger.info(f"🤖 Requesting {target_qa_count} Q&A pairs from LLM...")
+        start_time = time.time()
+        response = generator.llm_client.get_response(enhanced_prompt)
+        end_time = time.time()
+        
+        logger.info(f"✅ LLM response received in {end_time - start_time:.2f} seconds")
+        
+        # Parse the response
+        qa_pairs = generator.parse_llm_response(response)
+        
+        if qa_pairs:
+            logger.info(f"✅ Generated {len(qa_pairs)} Q&A pairs for document {document_id}")
+            
+            # Save to file
+            if generator.save_qa_pairs(qa_pairs):
+                logger.info(f"💾 Successfully saved {len(qa_pairs)} Q&A pairs to {generator.output_file}")
+                logger.info(f"🎉 Specific document retry completed successfully!")
+                
+                # Show sample of generated Q&A pairs
+                logger.info(f"\n📋 SAMPLE GENERATED Q&A PAIRS:")
+                for i, pair in enumerate(qa_pairs[:3], 1):  # Show first 3 pairs
+                    logger.info(f"\n🔸 Q&A Pair {i}:")
+                    logger.info(f"❓ Question: {pair['instruction'][:100]}...")
+                    logger.info(f"💡 Answer: {pair['output'][:100]}...")
+                
+                return True
+            else:
+                logger.error(f"❌ Failed to save Q&A pairs for document {document_id}")
+                return False
+        else:
+            logger.error(f"❌ Failed to generate valid Q&A pairs for document {document_id}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Error in specific document retry for {document_id}: {e}")
+        return False
+
+
+def generate_enhanced_qa_prompt(document_content: str, document_metadata: Dict, target_count: int = 12) -> str:
+    """Generate an enhanced prompt for creating more Q&A pairs from document content"""
+    
+    department = document_metadata.get("department", "General")
+    title = document_metadata.get("title", "Document")
+    
+    prompt = f"""You are an expert at creating comprehensive question-answer pairs for employee training datasets. 
+
+Given the following document content from the {department} department titled "{title}", generate exactly {target_count} diverse and comprehensive question-answer pairs that thoroughly cover all aspects of the content.
+
+Document Content:
+{document_content}
+
+Requirements:
+1. Create exactly {target_count} question-answer pairs
+2. Questions should be natural, varied, and from the employee/user perspective
+3. Cover ALL major topics, policies, procedures, and details from the document
+4. Include different question types: what, how, when, why, who, where, which, etc.
+5. Questions should range from basic to detailed/specific
+6. Answers should be comprehensive but clear and actionable
+7. Include both general and specific questions about the content
+8. Questions should serve actual employee queries and new joinee doubts
+9. Make sure to extract maximum value from the {len(document_content)} characters of content
+
+Question categories to cover (aim for variety):
+- General overview questions
+- Specific procedure/policy questions  
+- Eligibility/requirement questions
+- Process/workflow questions
+- Timeline/deadline questions
+- Contact/responsibility questions
+- Exception/special case questions
+- Benefits/consequences questions
+
+Format your response as a JSON array with this exact structure:
+[
+  {{
+    "instruction": "Comprehensive question about the content?",
+    "input": "Relevant detailed excerpt from document content that answers the question",
+    "output": "Complete, actionable answer based on the document content"
+  }},
+  {{
+    "instruction": "Another detailed question?",
+    "input": "Another relevant excerpt from document content", 
+    "output": "Another complete, helpful answer"
+  }}
+]
+
+Important: 
+- Respond ONLY with the JSON array, no additional text or formatting
+- Make sure the JSON is valid and properly formatted
+- Generate exactly {target_count} pairs to maximize the value from this {len(document_content)}-character document
+- Each question should be standalone and descriptive
+- Each answer should be complete and directly actionable for employees
+"""
+
+    return prompt
+
+
+def run_specific_retry():
+    """Convenience function to run the specific document retry"""
+    document_id = "fb7c9c80-1bbd-4078-abf4-a46c55901c1e"
+    target_questions = 12  # Middle of 10-15 range
+    
+    success = retry_specific_document(document_id, target_questions)
+    
+    if success:
+        logger.info(f"🎉 Successfully processed document {document_id}")
+    else:
+        logger.error(f"❌ Failed to process document {document_id}")
+    
+    return success
+
 def main():
     """Main function to run the dataset generation"""
     try:
@@ -421,3 +585,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # For the specific document retry
+    # run_specific_retry()
