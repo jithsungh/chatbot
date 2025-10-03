@@ -80,10 +80,9 @@ class DatasetGenerator:
             if total_count == 0:
                 logger.warning("⚠️ No documents found in collection")
                 return []
-            
-            # Retrieve all documents with their content and metadata
+              # Retrieve all documents with their content and metadata
             results = self.collection.get(
-                include=["documents", "metadatas", "ids"]
+                include=["documents", "metadatas"]
             )
             
             documents = []
