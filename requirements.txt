@@ -23,6 +23,9 @@ langchain-google-genai
 langchain_groq
 chromadb
 
+# llama client
+llama-cpp-python
+
 # Env management
 python-dotenv
 
