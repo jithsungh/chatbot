@@ -33,7 +33,7 @@ class Pipeline:
             from src.inference.HybridRouter import HybridDepartmentRouter
             from src.inference.ContextRetriever import SimpleContextRetriever
             from src.inference.PromptGenerator import PromptGenerator
-            from src.utils.LLMClientllama import LLMClientllama as LLMClient
+            from src.utils.LLMClientllama import LLMClientLlama as LLMClient
             from src.utils.ResponseFormatter import ResponseFormatter
             from src.config import Config
             
