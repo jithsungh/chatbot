@@ -165,8 +165,8 @@ class Pipeline:
             await self.history_manager.update_context(
                 userid, 
                 question=query, 
-                answer=parsed.answer, 
-                followup=parsed.followup, 
+                answer=parsed.get("answer", ""), 
+                followup=parsed.get("followup", ""), 
                 context=context
             )
 
@@ -192,7 +192,7 @@ class Pipeline:
         except:
             pass
         
-if __name__ == "__main__":
+async def main():
     pipeline = Pipeline()
     user_id = "user123"
 
@@ -211,15 +211,15 @@ if __name__ == "__main__":
 
             # Measure LLM response time
             start = time.time()
-            result = pipeline.process_user_query(user_query, user_id)
+            result = await pipeline.process_user_query(user_query, user_id)
             end = time.time()
 
             # print("\n------------------ AI Response ------------------")
             # ResponseFormatter.pretty_print(result)
             # print(f"\n⏱ Time taken: {end - start:.2f} seconds")
             # print("-------------------------------------------------\n")
-            print("AI: ", result.answer)
-            print("\n    ",result.followup)
+            print("AI: ", result.get("answer", ""))
+            print("\n    ",result.get("followup", ""))
             print(f"\n    ⏱ Time taken: {end - start:.2f} seconds\n")
 
             print("==============================================\n")
@@ -231,5 +231,8 @@ if __name__ == "__main__":
             break
         except Exception as e:
             print(f"\n❌ Error processing your query: {e}\n")
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
