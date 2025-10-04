@@ -19,6 +19,21 @@ class PromptGenerator:
 
         ---
 
+        ### CONTEXT
+        Knowledge Base: {context_text}
+
+        Conversation History: {history_text}
+
+        Last Context: {last_context}
+
+        Last Follow-up: {last_followup}
+
+        User Question: {query}
+
+        Detected Department: {dept}
+
+        ---
+
         ### JSON Schema (types required)
         {{
         "org_related": true | false,          // Whether the question is related to {Config.ORGANIZATION}
@@ -56,24 +71,10 @@ class PromptGenerator:
         - Followups should encourage deeper exploration of the topic
         9. NEVER include disclaimers, citations, or phrases like "Based on context."
 
-        ---
-
-        ### CONTEXT
-        Knowledge Base: {context_text}
-
-        Conversation History: {history_text}
-
-        Last Context: {last_context}
-
-        Last Follow-up: {last_followup}
-
-        User Question: {query}
-
-        Detected Department: {dept}
-
-        ---
-
+        
         Return ONLY the JSON object exactly as specified above.
+        All the JSON fields are mandatory in any case.
+        Only Strict JSON, no explanations or commentary or NOTEs.
         """
 
         return prompt.strip()

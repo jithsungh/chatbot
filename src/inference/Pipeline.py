@@ -159,19 +159,22 @@ class Pipeline:
             )
 
             response = self.llm_client.get_response(prompt)
-            parsed = self.response_formatter.to_json_object(response.content if response.content else response)
+            # print(f"💬 LLM Response: {response}")
+            # print("\n\n response type:", type(response), "\n\n")
+            parsed = self.response_formatter.to_json_object(response)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)
             await self.history_manager.update_context(
                 userid, 
                 question=query, 
-                answer=parsed.get("answer", ""), 
-                followup=parsed.get("followup", ""), 
+                answer=parsed.answer, 
+                followup=parsed.followup, 
                 context=context
             )
 
             # 6) Submit async database operations (non-blocking)
-            self._submit_async_db_operations(dept, parsed, userid, context)
+            if parsed.org_related:
+                self._submit_async_db_operations(dept, parsed, userid, context)
                 
             # Return response immediately without waiting for DB operations
             return parsed
@@ -218,8 +221,8 @@ async def main():
             # ResponseFormatter.pretty_print(result)
             # print(f"\n⏱ Time taken: {end - start:.2f} seconds")
             # print("-------------------------------------------------\n")
-            print("AI: ", result.get("answer", ""))
-            print("\n    ",result.get("followup", ""))
+            print("AI: ", result.answer)
+            print("\n    ",result.followup)
             print(f"\n    ⏱ Time taken: {end - start:.2f} seconds\n")
 
             print("==============================================\n")
