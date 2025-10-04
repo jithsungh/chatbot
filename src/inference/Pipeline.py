@@ -1,5 +1,6 @@
 from typing import Dict, Any
 import asyncio
+import time
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from src.models import DeptFailure, UserQuestion
@@ -191,40 +192,44 @@ class Pipeline:
         except:
             pass
         
-# if __name__ == "__main__":
-#     pipeline = Pipeline()
-#     user_id = "user123"
+if __name__ == "__main__":
+    pipeline = Pipeline()
+    user_id = "user123"
 
-#     print("==============================================")
-#     print("       Welcome to Techmojo AI Assistant       ")
-#     print("Type your message and press Enter to chat.")
-#     print("Type 'exit' or 'quit' to leave the chat.")
-#     print("==============================================\n")
+    print("==============================================")
+    print("       Welcome to Techmojo AI Assistant       ")
+    print("Type your message and press Enter to chat.")
+    print("Type 'exit' or 'quit' to leave the chat.")
+    print("==============================================\n")
 
-#     while True:
-#         try:
-#             user_query = input("You: ").strip()
-#             if user_query.lower() in {"exit", "quit"}:
-#                 print("\nGoodbye! 👋")
-#                 break
+    while True:
+        try:
+            user_query = input("You: ").strip()
+            if user_query.lower() in {"exit", "quit"}:
+                print("\nGoodbye! 👋")
+                break
 
-#             # Measure LLM response time
-#             start = time.time()
-#             result = pipeline.process_user_query(user_query, user_id)
-#             end = time.time()
+            # Measure LLM response time
+            start = time.time()
+            result = pipeline.process_user_query(user_query, user_id)
+            end = time.time()
 
-#             # print("\n------------------ AI Response ------------------")
-#             # ResponseFormatter.pretty_print(result)
-#             # print(f"\n⏱ Time taken: {end - start:.2f} seconds")
-#             # print("-------------------------------------------------\n")
-#             print("AI: ", result.answer)
-#             print("\n    ",result.followup)
-#             print(f"\n    ⏱ Time taken: {end - start:.2f} seconds\n")
+            # print("\n------------------ AI Response ------------------")
+            # ResponseFormatter.pretty_print(result)
+            # print(f"\n⏱ Time taken: {end - start:.2f} seconds")
+            # print("-------------------------------------------------\n")
+            print("AI: ", result.answer)
+            print("\n    ",result.followup)
+            print(f"\n    ⏱ Time taken: {end - start:.2f} seconds\n")
 
-#         except KeyboardInterrupt:
-#             print("\nInterrupted by user. Exiting...")
-#             break
-#         except Exception as e:
-#             print(f"\n❌ Error processing your query: {e}\n")
+            print("==============================================\n")
+            print(result)
+            print("==============================================\n")
+
+        except KeyboardInterrupt:
+            print("\nInterrupted by user. Exiting...")
+            break
+        except Exception as e:
+            print(f"\n❌ Error processing your query: {e}\n")
 
 
