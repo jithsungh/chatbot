@@ -159,7 +159,7 @@ class Pipeline:
             )
 
             response = self.llm_client.get_response(prompt)
-            parsed = self.response_formatter.to_json_object(response.content)
+            parsed = self.response_formatter.to_json_object(response.content if response.content else response)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)
             await self.history_manager.update_context(
