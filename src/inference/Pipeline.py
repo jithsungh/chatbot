@@ -36,7 +36,7 @@ class Pipeline:
             from src.inference.HybridRouter import HybridDepartmentRouter
             from src.inference.ContextRetriever import SimpleContextRetriever
             from src.inference.PromptGenerator import PromptGenerator
-            from src.utils.LLMClientGemma2 import LLMClientGemma as LLMClient
+            from src.utils.LLMClientGemma2b import LLMClientGemma as LLMClient
             from src.utils.ResponseFormatter import ResponseFormatter
             from src.config import Config
             
@@ -161,8 +161,8 @@ class Pipeline:
             # print(f"📝 Generated Prompt:\n{prompt}\n")
 
             response = self.llm_client.get_response(prompt)
-            print(f"💬 LLM Response: {response}")
-            print("\n\n response type:", type(response), "\n\n")
+            # print(f"💬 LLM Response: {response}")
+            # print("\n\n response type:", type(response), "\n\n")
             parsed = self.response_formatter.to_json_object(response)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)
