@@ -18,8 +18,11 @@ class Pipeline:
         
         # Thread pool for async database operations
         self.db_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="db_ops")
-        
         print("🔧 Pipeline created (components will be loaded lazily)")
+
+        # Initialize components
+        self._initialize_components()
+        
 
     def _initialize_components(self):
         """Lazy initialization of components"""
@@ -33,7 +36,7 @@ class Pipeline:
             from src.inference.HybridRouter import HybridDepartmentRouter
             from src.inference.ContextRetriever import SimpleContextRetriever
             from src.inference.PromptGenerator import PromptGenerator
-            from src.utils.LLMClientPhi3 import LLMClientPhi3 as LLMClient
+            from src.utils.LLMClientGemma2 import LLMClientGemma as LLMClient
             from src.utils.ResponseFormatter import ResponseFormatter
             from src.config import Config
             
@@ -133,14 +136,11 @@ class Pipeline:
 
     async def process_user_query(self, query: str, userid: str) -> Dict[str, Any]:
         try:
-            # Initialize components only when first query comes in
-            self._initialize_components()
-            
             # 1) Determine department
             dept = self.router.route_query(query)
 
             # 2) Retrieve context
-            chunks = self.retriever.retrieve_context(query=query, dept=dept, k=10, max_docs=5)
+            chunks = self.retriever.retrieve_context(query=query, dept=dept, k=10)
             context = " ,".join([c[0] for c in chunks])
 
             # 3) Get user history
@@ -158,9 +158,11 @@ class Pipeline:
                 last_followup=last_followup
             )
 
+            # print(f"📝 Generated Prompt:\n{prompt}\n")
+
             response = self.llm_client.get_response(prompt)
-            # print(f"💬 LLM Response: {response}")
-            # print("\n\n response type:", type(response), "\n\n")
+            print(f"💬 LLM Response: {response}")
+            print("\n\n response type:", type(response), "\n\n")
             parsed = self.response_formatter.to_json_object(response)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)
@@ -171,13 +173,13 @@ class Pipeline:
                 followup=parsed.followup, 
                 context=context
             )
+            # Return response immediately without waiting for DB operations
+            return parsed
 
             # 6) Submit async database operations (non-blocking)
             if parsed.org_related:
                 self._submit_async_db_operations(dept, parsed, userid, context)
                 
-            # Return response immediately without waiting for DB operations
-            return parsed
         
         except Exception as e:
             print(f"❌ Error in pipeline processing: {e}")
@@ -235,7 +237,7 @@ async def main():
         except Exception as e:
             print(f"\n❌ Error processing your query: {e}\n")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())
 
 
