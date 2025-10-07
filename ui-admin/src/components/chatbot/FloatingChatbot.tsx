@@ -1,10 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, X, Send, Loader2, Bot, User, Minimize2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  MessageCircle,
+  X,
+  Send,
+  Loader2,
+  Bot,
+  User,
+  Minimize2,
+  Trash2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -35,6 +44,7 @@ const FloatingChatbot = () => {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isClearingHistory, setIsClearingHistory] = useState(false);
   const [userId] = useState(() => {
     let storedUserId = localStorage.getItem("chatbot_user_id");
     if (!storedUserId) {
@@ -150,11 +160,57 @@ const FloatingChatbot = () => {
       setIsLoading(false);
     }
   };
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  const clearChatHistory = async () => {
+    if (isClearingHistory) return;
+
+    setIsClearingHistory(true);
+
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/user/history/${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Clear local messages (keep only the initial greeting)
+      setMessages([
+        {
+          id: "1",
+          content: "Hello! I'm your AI assistant. How can I help you today?",
+          isUser: false,
+          timestamp: new Date(),
+        },
+      ]);
+
+      toast({
+        title: "Chat History Cleared",
+        description: "Your conversation history has been successfully cleared.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error clearing chat history:", error);
+      toast({
+        title: "Clear History Failed",
+        description: "Unable to clear chat history. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearingHistory(false);
     }
   };
 
@@ -205,8 +261,22 @@ const FloatingChatbot = () => {
               <CardTitle className="text-lg">AI Assistant</CardTitle>
               <p className="text-xs opacity-90">Powered by TechMojo</p>
             </div>
-          </div>
+          </div>{" "}
           <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearChatHistory}
+              disabled={isClearingHistory || messages.length <= 1}
+              className="h-8 w-8 text-white hover:bg-white/20 disabled:opacity-50"
+              title="Clear chat history"
+            >
+              {isClearingHistory ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -103,27 +103,27 @@ class SimpleContextRetriever:
 
 # ------------------ Example usage ------------------x  
 
-# def main():
-#     retriever = SimpleContextRetriever()
+def main():
+    retriever = SimpleContextRetriever()
     
-#     while True:
-#         query = input("Enter your query: ").strip()
-#         if query.lower() in {"exit", "quit"}:
-#             break
+    while True:
+        query = input("Enter your query: ").strip()
+        if query.lower() in {"exit", "quit"}:
+            break
         
-#         dept = input("Enter department (HR / IT / Security / General Inquiry): ").strip()
-#         if not dept:
-#             dept = "General Inquiry"
+        dept = input("Enter department (HR / IT / Security / General Inquiry): ").strip()
+        if not dept:
+            dept = "General Inquiry"
         
-#         chunks = retriever.retrieve_context(query=query, dept=dept, k=10, max_docs=5)
+        chunks = retriever.retrieve_context(query=query, dept=dept, k=10, max_docs=5)
         
-#         print("\n--- Retrieved Chunks ---")
-#         if chunks:
-#             for i, (doc, score) in enumerate(chunks, 1):
-#                 print(f"{i}-#####score: {score:.3f}######{doc}\n\n\n")
-#         else:
-#             print("No relevant chunks found.")
-#         print()
+        print("\n--- Retrieved Chunks ---")
+        if chunks:
+            for i, (doc, score) in enumerate(chunks, 1):
+                print(f"{i}-#####score: {score:.3f}######{doc}\n\n\n")
+        else:
+            print("No relevant chunks found.")
+        print()
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
