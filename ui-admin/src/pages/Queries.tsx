@@ -296,9 +296,9 @@ const Queries = () => {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="date">Date</SelectItem>
-                  <SelectItem value="priority">Priority/Frequency</SelectItem>
-                  <SelectItem value="department">Department</SelectItem>
+                  <SelectItem value="date">Sort by Date</SelectItem>
+                  <SelectItem value="priority">Sort by Frequency</SelectItem>
+                  <SelectItem value="department">Sort by Department</SelectItem>
                 </SelectContent>
               </Select>
             </div>

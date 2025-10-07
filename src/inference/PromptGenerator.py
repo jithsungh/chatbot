@@ -48,7 +48,8 @@ class PromptGenerator:
         - "answer": "Alright! Have a great day and feel free to reach out anytime."
         - "followup": "Is there anything else you'd like to know about {Config.ORGANIZATION}?"
         7. Positive confirmations ("Yes / yup / yeah") → treat as continuation of last exchange.
-        - Provide a contextually relevant followup, do not include meta-comments like "you confirmed something."
+        - "answer": A concise, professional response building on last context, do not include meta-comments like "you confirmed something.
+        - "Folow up": <Provide a contextually relevant followup.>"
         8. Always provide **complete, structured, professional answers** for valid org-related queries.
         - 3-4 sentences minimum
         - Polite, concise, and professional
