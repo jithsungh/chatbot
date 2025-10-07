@@ -310,14 +310,18 @@ class EnhancedPipeline:
             visualizer.print_final_summary(total_time, parsed)
             
             return parsed
-            
         except Exception as e:
             print(f"{Colors.FAIL}❌ Error in pipeline processing: {e}{Colors.ENDC}")
-            return {
-                "answer": "I apologize, but I encountered an error processing your request. Please try again.",
-                "followup": "Is there anything else I can help you with?",
-                "error": str(e)
-            }
+            
+            # Create error result as SimpleNamespace for consistency
+            from types import SimpleNamespace
+            error_result = SimpleNamespace()
+            error_result.answer = "I apologize, but I encountered an error processing your request. Please try again."
+            error_result.followup = "Is there anything else I can help you with?"
+            error_result.error = str(e)
+            error_result.org_related = False
+            
+            return error_result
     
     def get_performance_stats(self) -> Dict[str, Any]:
         """Get performance statistics"""

@@ -28,30 +28,10 @@ async def demo_queries():
     # Test queries representing different scenarios
     test_queries = [
         {
-            "query": "What is the employee handbook policy for sick leave?",
+            "query": "What is the referral Bonus policy?",
             "userid": "demo_user_001",
             "description": "HR Department Query with Context Expected"
         },
-        {
-            "query": "My computer is running very slowly and keeps freezing",
-            "userid": "demo_user_002", 
-            "description": "IT Support Query"
-        },
-        {
-            "query": "I need help resetting my password for the company portal",
-            "userid": "demo_user_003",
-            "description": "IT Security Query"
-        },
-        {
-            "query": "What are the visiting hours for the office?",
-            "userid": "demo_user_004",
-            "description": "General Inquiry"
-        },
-        {
-            "query": "How do I report a security incident in the building?",
-            "userid": "demo_user_005",
-            "description": "Security Department Query"
-        }
     ]
     
     print(f"\n{Colors.HEADER}🎯 PIPELINE VISUALIZATION DEMO{Colors.ENDC}")
@@ -75,11 +55,22 @@ async def demo_queries():
                 query_info["query"], 
                 query_info["userid"]
             )
-            
-            # Show the final result
+              # Show the final result
             print(f"\n{Colors.OKGREEN}✨ FINAL RESULT FOR QUERY {i}{Colors.ENDC}")
-            print(f"{Colors.OKGREEN}Answer: {result.answer[:100]}{'...' if len(result.answer) > 100 else ''}{Colors.ENDC}")
-            print(f"{Colors.OKGREEN}Follow-up: {result.followup}{Colors.ENDC}")
+            
+            # Handle both SimpleNamespace objects and dictionaries
+            if hasattr(result, 'answer'):
+                answer = result.answer
+                followup = getattr(result, 'followup', 'No follow-up available')
+            elif isinstance(result, dict):
+                answer = result.get('answer', 'No answer available')
+                followup = result.get('followup', 'No follow-up available')
+            else:
+                answer = str(result)
+                followup = 'No follow-up available'
+            
+            print(f"{Colors.OKGREEN}Answer: {answer[:100]}{'...' if len(answer) > 100 else ''}{Colors.ENDC}")
+            print(f"{Colors.OKGREEN}Follow-up: {followup}{Colors.ENDC}")
             
         except Exception as e:
             print(f"{Colors.FAIL}❌ Error processing query {i}: {e}{Colors.ENDC}")

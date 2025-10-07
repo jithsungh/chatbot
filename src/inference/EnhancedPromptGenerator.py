@@ -45,16 +45,15 @@ class EnhancedPromptGenerator(PromptGenerator):
                 'department': {
                     'content': dept,
                     'length': len(dept)
-                },
-                'context': {
-                    'content': context_text,
-                    'length': len(context_text),
-                    'provided': bool(context_text.strip())
+                },                'context': {
+                    'content': str(context_text) if context_text else "",
+                    'length': len(str(context_text)) if context_text else 0,
+                    'provided': bool(str(context_text).strip() if context_text else False)
                 },
                 'history': {
-                    'content': history_text,
-                    'length': len(history_text),
-                    'provided': bool(history_text.strip())
+                    'content': str(history_text) if history_text else "",
+                    'length': len(str(history_text)) if history_text else 0,
+                    'provided': bool(str(history_text).strip() if history_text else False)
                 },
                 'last_context': {
                     'content': last_context,
@@ -115,14 +114,13 @@ class EnhancedPromptGenerator(PromptGenerator):
                 },
                 'generation_number': self.generation_count
             }
-            
-            # Store in history
+              # Store in history
             self.generation_history.append({
                 'department': dept,
                 'template_used': template_used,
                 'prompt_length': len(prompt),
-                'context_provided': bool(context_text.strip()),
-                'history_provided': bool(history_text.strip()),
+                'context_provided': bool(str(context_text).strip() if context_text else False),
+                'history_provided': bool(str(history_text).strip() if history_text else False),
                 'generation_time': generation_time,
                 'timestamp': time.time()
             })
@@ -138,6 +136,15 @@ class EnhancedPromptGenerator(PromptGenerator):
         except Exception as e:
             total_time = time.perf_counter() - start_time
             print(f"{Colors.FAIL}❌ Error in enhanced prompt generation: {e}{Colors.ENDC}")
+              # Create fallback components
+            fallback_components = {
+                'query': {'content': query, 'length': len(query), 'word_count': len(query.split())},
+                'department': {'content': dept, 'length': len(dept)},
+                'context': {'content': str(context_text) if context_text else "", 'length': len(str(context_text)) if context_text else 0, 'provided': bool(str(context_text).strip() if context_text else False)},
+                'history': {'content': str(history_text) if history_text else "", 'length': len(str(history_text)) if history_text else 0, 'provided': bool(str(history_text).strip() if history_text else False)},
+                'last_context': {'content': str(last_context) if last_context else '', 'length': len(str(last_context)) if last_context else 0, 'provided': bool(last_context)},
+                'last_followup': {'content': str(last_followup) if last_followup else '', 'length': len(str(last_followup)) if last_followup else 0, 'provided': bool(last_followup)}
+            }
             
             # Fallback to basic prompt
             fallback_prompt = f"""You are a helpful AI assistant for Techmojo company.
@@ -150,7 +157,7 @@ class EnhancedPromptGenerator(PromptGenerator):
             return {
                 'prompt': fallback_prompt,
                 'template_used': 'fallback',
-                'components': components,
+                'components': fallback_components,
                 'error': str(e),
                 'timings': {
                     'generation_time': 0.0,
