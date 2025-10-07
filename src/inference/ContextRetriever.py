@@ -43,12 +43,15 @@ class SimpleContextRetriever:
             return {"department": dept}
         return None
 
-    def retrieve_context(self, query: str, dept: str, k: int = 10, max_docs: int = 5) -> List[Tuple[str, float]]:
+    def retrieve_context(self, query: str, dept: str, k: int = 10) -> List[Tuple[str, float]]:
+        """
+        Retrieve exactly 2 context documents from ChromaDB for the given query and department.
+        """
         try:
             # Initialize ChromaDB if needed
             if not self._initialize_chromadb():
                 return []
-                
+
             # Get embedding model
             model = self._get_embedding_model()
             if model is None:
@@ -68,20 +71,9 @@ class SimpleContextRetriever:
 
             docs = results.get("documents", [[]])[0]
             distances = results.get("distances", [[]])[0]
-            
-            if not docs:
-                return []
 
-            # Pair (doc, distance) and sort ascending (lower distance = closer)
-            filtered = sorted(zip(docs, distances), key=lambda x: x[1])
-
-            # Return docs with distance < 1
-            top_filtered = [item for item in filtered if item[1] < 1]
-
-            # count the docs with distance less than 1.5
-            count_1_5 = sum(1 for item in filtered if item[1] < 1.5)
-            if count_1_5 <1:
-                # retry context retrieval without department filter
+            # If not enough docs, retry without department filter
+            if len(docs) < 2:
                 results = self.collection.query(
                     query_embeddings=[q_emb],
                     n_results=k,
@@ -90,27 +82,23 @@ class SimpleContextRetriever:
                 docs = results.get("documents", [[]])[0]
                 distances = results.get("distances", [[]])[0]
 
-                if not docs:
-                    return []
+            if not docs:
+                return []
 
-                # Pair (doc, distance) and sort ascending (lower distance = closer)
-                filtered = sorted(zip(docs, distances), key=lambda x: x[1])
+            # Pair (doc, distance) and sort ascending (lower distance = closer)
+            filtered = sorted(zip(docs, distances), key=lambda x: x[1])
 
-                # Return docs with distance < 1
-                top_filtered = [item for item in filtered if item[1] < 1]
-
-
-            # Ensure minimum 3 docs
-            if len(top_filtered) < 3:
-                top_filtered = filtered[:max(3, min(len(filtered), max_docs))]
+            # Ensure exactly 2 documents are returned
+            if len(filtered) >= 2:
+                return filtered[:2]
             else:
-                top_filtered = top_filtered[:max_docs]
-
-            return top_filtered
+                # If only 1 document available, duplicate it to make 2
+                return filtered * 2
 
         except Exception as e:
             print(f"❌ Context retrieval error: {e}")
             return []
+
 
 
 # ------------------ Example usage ------------------x  

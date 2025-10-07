@@ -17,7 +17,7 @@ class LLMClientPhi3:
             print(f"❌ Failed to initialize Phi-3 Mini: {e}")
             raise
 
-    def get_response(self, prompt: str, max_tokens: int = 512) -> str:
+    def get_response(self, prompt: str, max_tokens: int = 256) -> str:
         """Get response from Phi-3 Mini LLM"""
         try:
             result = self.llm(
