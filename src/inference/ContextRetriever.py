@@ -45,7 +45,7 @@ class SimpleContextRetriever:
 
     def retrieve_context(self, query: str, dept: str, k: int = 10) -> List[Tuple[str, float]]:
         """
-        Retrieve exactly 2 context documents from ChromaDB for the given query and department.
+        Retrieve exactly 3 context documents from ChromaDB for the given query and department.
         """
         try:
             # Initialize ChromaDB if needed
@@ -89,11 +89,10 @@ class SimpleContextRetriever:
             filtered = sorted(zip(docs, distances), key=lambda x: x[1])
 
             # Ensure exactly 2 documents are returned
-            if len(filtered) >= 2:
-                return filtered[:2]
+            if len(filtered) >= 3:
+                return filtered[:3]
             else:
-                # If only 1 document available, duplicate it to make 2
-                return filtered * 2
+                return filtered + filtered[:1]
 
         except Exception as e:
             print(f"❌ Context retrieval error: {e}")
