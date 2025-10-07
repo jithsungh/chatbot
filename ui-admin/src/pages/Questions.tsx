@@ -47,6 +47,7 @@ import {
   X,
   Bot,
   UserX,
+  ArrowDownUp,
 } from "lucide-react";
 
 interface Question {
@@ -355,8 +356,6 @@ const Questions = () => {
                   ? filterStatus
                   : undefined,
               dept: filterDept && filterDept !== "all" ? filterDept : undefined,
-              admin:
-                filterAdmin && filterAdmin !== "all" ? filterAdmin : undefined,
               sort_by: sortBy === "date" ? "createdAt" : sortBy,
               order: sortOrder,
               limit: pageSize,
@@ -758,7 +757,7 @@ const Questions = () => {
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center space-x-2">
               <Filter className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Filters & Sort:</span>
+              <span className="text-sm font-medium">Filters</span>
             </div>
 
             <Select value={filterDept} onValueChange={setFilterDept}>
@@ -800,7 +799,10 @@ const Questions = () => {
                 </SelectContent>
               </Select>
             )}
-
+            <div className="flex items-center space-x-2">
+              <ArrowDownUp className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Sort</span>
+            </div>
             <Select
               value={sortBy}
               onValueChange={(value: "date" | "dept" | "status" | "priority") =>

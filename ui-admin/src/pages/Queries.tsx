@@ -42,7 +42,7 @@ import {
   Lightbulb,
   Users,
   Shield,
-  Search,
+  ArrowDownUp,
   SortAsc,
   SortDesc,
 } from "lucide-react";
@@ -270,7 +270,7 @@ const Queries = () => {
                 </SelectContent>
               </Select>
             </div>
-
+            { activeTab === "answered" && (
             <div className="flex items-center space-x-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <Select value={filterByMe} onValueChange={setFilterByMe}>
@@ -282,10 +282,10 @@ const Queries = () => {
                   <SelectItem value="self">Answered by me</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div>)}
 
             <div className="flex items-center space-x-2">
-              <Search className="w-4 h-4 text-muted-foreground" />
+                <ArrowDownUp className="w-4 h-4 text-muted-foreground" />
               <Select
                 value={sortBy}
                 onValueChange={(value: "date" | "priority" | "department") =>

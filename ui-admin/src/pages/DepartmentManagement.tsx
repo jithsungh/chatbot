@@ -471,7 +471,7 @@ const DepartmentManagement = () => {
 
                 <div className="space-y-2">
                   <Label>Current Keywords for {selectedDept}</Label>
-                  <div className="min-h-[200px] max-h-[300px] overflow-y-auto border rounded-md p-3">
+                  <div className="min-h-[200px] max-h-[450px] overflow-y-auto border rounded-md p-3">
                     {loading ? (
                       <div className="flex items-center justify-center py-8">
                         <RefreshCw className="w-4 h-4 animate-spin mr-2" />

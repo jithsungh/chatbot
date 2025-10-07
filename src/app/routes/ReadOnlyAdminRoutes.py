@@ -160,7 +160,6 @@ async def change_password(
 async def get_user_questions(
     status: Optional[str] = Query(None),
     dept: Optional[str] = Query(None),
-    admin: Optional[str] = Query(None),
     sort_by: Optional[str] = Query("createdAt"),  # e.g., "createdAt", "department", "status"
     order: Optional[str] = Query("asc"),  # "asc" or "desc"
     limit: int = Query(100, ge=1, le=1000),
@@ -187,9 +186,6 @@ async def get_user_questions(
             query = query.filter(UserQuestion.status == status)
         if dept:
             query = query.filter(UserQuestion.dept == DeptType(dept))
-        if admin:
-            admin_uuid = parse_admin_id(admin, current_admin)
-            query = query.filter(UserQuestion.adminid == admin_uuid)
 
         # Sorting
         if sort_by not in valid_sort_fields:
