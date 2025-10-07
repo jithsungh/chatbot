@@ -115,7 +115,7 @@ def main():
         if not dept:
             dept = "General Inquiry"
         
-        chunks = retriever.retrieve_context(query=query, dept=dept, k=10, max_docs=5)
+        chunks = retriever.retrieve_context(query=query, dept=dept, k=10)
         
         print("\n--- Retrieved Chunks ---")
         if chunks:
