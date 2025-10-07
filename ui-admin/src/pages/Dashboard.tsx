@@ -27,6 +27,8 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
+  Bar,
+  ComposedChart,
 } from "recharts";
 import {
   ChartContainer,
@@ -120,10 +122,19 @@ const Dashboard = () => {
     setRefreshing(true);
     await fetchDashboardStats();
   };
-
   useEffect(() => {
     fetchDashboardStats();
   }, [fetchDashboardStats]);
+
+  // Auto-refresh when dataPoints changes
+  useEffect(() => {
+    if (stats) {
+      apiClient
+        .getAvgResponseTimes(timeInterval, dataPoints)
+        .then(setResponseTimeData)
+        .catch(console.error);
+    }
+  }, [dataPoints, stats, timeInterval]);
 
   // Auto-refresh every minute for response time
   useEffect(() => {
@@ -140,16 +151,15 @@ const Dashboard = () => {
     }, 60000); // 1 minute
 
     return () => clearInterval(interval);
-  }, [autoRefresh, stats, timeInterval]); 
-  
+  }, [autoRefresh, stats, timeInterval]);
+
   // Format response time for display
   const formatResponseTime = (time?: number | null) => {
     if (typeof time !== "number" || isNaN(time)) return "N/A";
     if (time < 1) return `${(time * 1000).toFixed(0)}ms`;
     return `${time.toFixed(2)}s`;
   };
-  
-  
+
   // Mock data for testing (remove when API is working)
   const getMockStats = (): DashboardStats => ({
     total_user_questions: 1234,
@@ -515,18 +525,18 @@ const Dashboard = () => {
             </Card>
           </div>
         )}
-      </div>
-      {/* Response Time Graph */}
+      </div>{" "}
+      {/* Merged Response Time & Request Count Graph */}
       <Card className="card-hover">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center space-x-2">
                 <BarChart3 className="w-5 h-5 text-primary" />
-                <span>Response Time Graph</span>
+                <span>Performance Analytics</span>
               </CardTitle>
               <CardDescription>
-                Visualize average response time over time
+                Response time trends and request volume over time
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
@@ -556,10 +566,12 @@ const Dashboard = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="10">10 points</SelectItem>
+                  <SelectItem value="20">20 points</SelectItem>
+                  <SelectItem value="30">30 points</SelectItem>
+                  <SelectItem value="50">50 points</SelectItem>
+                  <SelectItem value="100">100 points</SelectItem>
+                  <SelectItem value="200">200 points</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -583,13 +595,14 @@ const Dashboard = () => {
           responseTimeData.data.length > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-4 flex-wrap gap-2">
                   {" "}
                   <Badge
                     variant="outline"
-                    className="bg-primary/10 text-primary border-primary/20"
+                    className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1"
                   >
-                    Avg:{" "}
+                    <Clock className="w-3 h-3 text-blue-600" />
+                    Avg Response:{" "}
                     {formatResponseTime(
                       responseTimeData.data.reduce(
                         (sum, item) => sum + item.avg_response_time,
@@ -597,225 +610,19 @@ const Dashboard = () => {
                       ) / responseTimeData.data.length
                     )}
                   </Badge>
-                  <Badge variant="outline" className="bg-secondary">
-                    Data Points: {responseTimeData.n}
-                  </Badge>
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        autoRefresh ? "bg-success animate-pulse" : "bg-muted"
-                      }`}
-                    ></div>
-                    <span className="text-xs text-muted-foreground">
-                      {autoRefresh
-                        ? "Auto-refresh: 1 min"
-                        : "Auto-refresh: Off"}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAutoRefresh(!autoRefresh)}
-                  className="h-6 px-2 text-xs"
-                >
-                  {autoRefresh ? "Turn Off" : "Turn On"} Auto-refresh
-                </Button>
-              </div>
-
-              <div className="h-64">
-                <ChartContainer
-                  config={{
-                    avg_response_time: {
-                      label: "Response Time",
-                      color: "hsl(var(--primary))",
-                    },
-                  }}
-                  className="h-full w-full"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={responseTimeData.data.map((item) => ({
-                        ...item,
-                        formattedTime: new Date(
-                          item.timestamp
-                        ).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          ...(timeInterval === "daily"
-                            ? {}
-                            : {
-                                month: "short",
-                                day: "numeric",
-                              }),
-                        }),
-                        displayValue: formatResponseTime(
-                          item.avg_response_time
-                        ),
-                      }))}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis
-                        dataKey="formattedTime"
-                        className="text-xs text-muted-foreground"
-                        interval="preserveStartEnd"
-                      />
-                      <YAxis
-                        className="text-xs text-muted-foreground"
-                        tickFormatter={(value) => formatResponseTime(value as number)}
-                      />{" "}
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            labelFormatter={(value, payload) => {
-                              if (payload && payload[0]) {
-                                return new Date(
-                                  payload[0].payload.timestamp
-                                ).toLocaleString();
-                              }
-                              return value;
-                            }}
-                            formatter={(value, name, props) => {
-                              if (name === "avg_response_time") {
-                                const requestCount =
-                                  props?.payload?.requests_count || 0;
-                                return [
-                                  <>
-                                    <div className="text-xs text-muted-foreground">
-                                      Response Time:{" "}
-                                      {formatResponseTime(value as number)}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      Requests: {requestCount}
-                                    </div>
-                                  </>,
-                                ];
-                              }
-                              return [value, name];
-                            }}
-                          />
-                        }
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="avg_response_time"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={{
-                          fill: "hsl(var(--primary))",
-                          strokeWidth: 2,
-                          r: 4,
-                        }}
-                        activeDot={{
-                          r: 6,
-                          stroke: "hsl(var(--primary))",
-                          strokeWidth: 2,
-                        }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-64 text-muted-foreground">
-              <div className="text-center space-y-2">
-                <Activity className="w-8 h-8 mx-auto opacity-50" />
-                <p>No response time data available</p>
-                <Button variant="outline" size="sm" onClick={handleRefresh}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh Data
-                </Button>
-              </div>
-            </div>
-          )}{" "}
-        </CardContent>
-      </Card>
-      {/* Request Count Graph */}
-      <Card className="card-hover">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-primary" />
-                <span>Request Count Graph</span>
-              </CardTitle>
-              <CardDescription>Number of requests over time</CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Select value={timeInterval} onValueChange={setTimeInterval}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1min">1 minute</SelectItem>
-                  <SelectItem value="5min">5 minutes</SelectItem>
-                  <SelectItem value="10min">10 minutes</SelectItem>
-                  <SelectItem value="30min">30 minutes</SelectItem>
-                  <SelectItem value="1h">1 hour</SelectItem>
-                  <SelectItem value="3h">3 hours</SelectItem>
-                  <SelectItem value="6h">6 hours</SelectItem>
-                  <SelectItem value="12h">12 hours</SelectItem>
-                  <SelectItem value="24h">24 hours</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={dataPoints.toString()}
-                onValueChange={(val) => setDataPoints(Number(val))}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={refreshing}
-              >
-                {refreshing ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {responseTimeData &&
-          responseTimeData.data &&
-          responseTimeData.data.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-4">
                   <Badge
                     variant="outline"
-                    className="bg-primary/10 text-primary border-primary/20"
+                    className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
                   >
+                    <Activity className="w-3 h-3 text-green-600" />
                     Total Requests:{" "}
                     {responseTimeData.data.reduce(
                       (sum, item) => sum + item.requests_count,
                       0
                     )}
                   </Badge>
-                  <Badge variant="outline" className="bg-secondary">
-                    Data Points: {responseTimeData.n}
+                  <Badge variant="outline" className="bg-secondary/50">
+                    {responseTimeData.n} data points
                   </Badge>
                   <div className="flex items-center space-x-2">
                     <div
@@ -834,24 +641,27 @@ const Dashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setAutoRefresh(!autoRefresh)}
-                  className="h-6 px-2 text-xs"
+                  className="h-6 px-2 text-xs hover:bg-primary/5"
                 >
                   {autoRefresh ? "Turn Off" : "Turn On"} Auto-refresh
                 </Button>
               </div>
-
-              <div className="h-64">
+              <div className="h-80">
                 <ChartContainer
                   config={{
+                    avg_response_time: {
+                      label: "Response Time",
+                      color: "hsl(210, 60%, 55%)", // Professional blue
+                    },
                     requests_count: {
                       label: "Request Count",
-                      color: "hsl(var(--chart-2))",
+                      color: "hsl(142, 45%, 45%)", // Professional green
                     },
                   }}
                   className="h-full w-full"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
+                    <ComposedChart
                       data={responseTimeData.data.map((item) => ({
                         ...item,
                         formattedTime: new Date(
@@ -859,83 +669,271 @@ const Dashboard = () => {
                         ).toLocaleTimeString("en-US", {
                           hour: "2-digit",
                           minute: "2-digit",
-                          ...(timeInterval === "daily"
-                            ? {}
-                            : {
+                          ...(timeInterval.includes("h") ||
+                          timeInterval === "24h"
+                            ? {
                                 month: "short",
                                 day: "numeric",
-                              }),
+                              }
+                            : {}),
                         }),
+                        displayValue: formatResponseTime(
+                          item.avg_response_time
+                        ),
                       }))}
                       margin={{
-                        top: 5,
-                        right: 30,
+                        top: 20,
+                        right: 50,
                         left: 20,
-                        bottom: 5,
+                        bottom: 20,
                       }}
                     >
+                      {" "}
+                      <defs>
+                        {/* Professional blue gradient for response time line */}
+                        <linearGradient
+                          id="responseGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="hsl(210, 60%, 55%)"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="50%"
+                            stopColor="hsl(210, 55%, 60%)"
+                            stopOpacity={0.15}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="hsl(210, 50%, 65%)"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                        {/* Professional green gradient for bars */}
+                        <linearGradient
+                          id="barGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="hsl(142, 45%, 45%)"
+                            stopOpacity={0.85}
+                          />
+                          <stop
+                            offset="50%"
+                            stopColor="hsl(142, 50%, 50%)"
+                            stopOpacity={0.75}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="hsl(142, 55%, 55%)"
+                            stopOpacity={0.65}
+                          />
+                        </linearGradient>
+                        {/* Subtle shadow effect for professional look */}
+                        <filter id="shadow">
+                          <feDropShadow
+                            dx="0"
+                            dy="1"
+                            stdDeviation="1"
+                            floodOpacity="0.15"
+                          />
+                        </filter>
+                      </defs>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        className="stroke-muted"
+                        className="stroke-muted/30"
+                        stroke="hsl(var(--muted-foreground))"
+                        opacity={0.2}
                       />
                       <XAxis
                         dataKey="formattedTime"
                         className="text-xs text-muted-foreground"
+                        tick={{
+                          fontSize: 11,
+                          fill: "hsl(var(--muted-foreground))",
+                        }}
                         interval="preserveStartEnd"
-                      />
-                      <YAxis className="text-xs text-muted-foreground" />
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            labelFormatter={(value, payload) => {
-                              if (payload && payload[0]) {
-                                return new Date(
-                                  payload[0].payload.timestamp
-                                ).toLocaleString();
-                              }
-                              return value;
-                            }}
-                            formatter={(value, name) => [value, "Requests"]}
-                          />
+                        axisLine={{ stroke: "hsl(var(--border))" }}
+                        tickLine={{ stroke: "hsl(var(--border))" }}
+                      />{" "}
+                      {/* Left Y-axis for Response Time */}
+                      <YAxis
+                        yAxisId="response"
+                        className="text-xs text-muted-foreground"
+                        tick={{ fontSize: 11, fill: "hsl(210, 50%, 45%)" }}
+                        tickFormatter={(value) =>
+                          formatResponseTime(value as number)
                         }
+                        axisLine={{
+                          stroke: "hsl(210, 50%, 45%)",
+                          strokeWidth: 1.5,
+                        }}
+                        tickLine={{ stroke: "hsl(210, 50%, 45%)" }}
+                        label={{
+                          value: "Response Time (seconds)",
+                          angle: -90,
+                          position: "insideLeft",
+                          style: {
+                            textAnchor: "middle",
+                            fill: "hsl(210, 50%, 45%)",
+                            fontWeight: "500",
+                          },
+                        }}
                       />
-                      <Line
-                        type="monotone"
+                      {/* Right Y-axis for Request Count */}
+                      <YAxis
+                        yAxisId="requests"
+                        orientation="right"
+                        className="text-xs text-muted-foreground"
+                        tick={{ fontSize: 11, fill: "hsl(142, 40%, 40%)" }}
+                        axisLine={{
+                          stroke: "hsl(142, 40%, 40%)",
+                          strokeWidth: 1.5,
+                        }}
+                        tickLine={{ stroke: "hsl(142, 40%, 40%)" }}
+                        label={{
+                          value: "Request Count",
+                          angle: 90,
+                          position: "insideRight",
+                          style: {
+                            textAnchor: "middle",
+                            fill: "hsl(142, 40%, 40%)",
+                            fontWeight: "500",
+                          },
+                        }}
+                      />
+                      <ChartTooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0]?.payload;
+                            return (
+                              <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-4 space-y-2">
+                                <p className="font-medium text-sm border-b pb-2">
+                                  {new Date(data?.timestamp).toLocaleString()}
+                                </p>
+                                <div className="space-y-1">
+                                  {" "}
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-3 h-[2px] bg-blue-600 rounded-full"></div>
+                                      <span className="text-xs font-medium text-slate-700">
+                                        Response Time:
+                                      </span>
+                                    </div>
+                                    <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded text-xs border border-blue-100">
+                                      {formatResponseTime(
+                                        data?.avg_response_time
+                                      )}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-3 h-3 bg-green-600 rounded-sm"></div>
+                                      <span className="text-xs font-medium text-slate-700">
+                                        Requests:
+                                      </span>
+                                    </div>
+                                    <span className="font-semibold text-green-700 bg-green-50 px-2 py-1 rounded text-xs border border-green-100">
+                                      {data?.requests_count}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />{" "}
+                      {/* Professional Bar Chart for Request Count */}
+                      <Bar
+                        yAxisId="requests"
                         dataKey="requests_count"
-                        stroke="hsl(var(--chart-2))"
-                        strokeWidth={2}
+                        fill="url(#barGradient)"
+                        stroke="hsl(142, 45%, 45%)"
+                        strokeWidth={0}
+                        radius={[3, 3, 0, 0]}
+                        opacity={0.9}
+                        name="Request Count"
+                        filter="url(#shadow)"
+                      />
+                      {/* Professional Line for Response Time */}
+                      <Line
+                        yAxisId="response"
+                        type="monotone"
+                        dataKey="avg_response_time"
+                        stroke="hsl(210, 60%, 55%)"
+                        strokeWidth={3}
+                        fill="url(#responseGradient)"
                         dot={{
-                          fill: "hsl(var(--chart-2))",
+                          fill: "hsl(210, 60%, 55%)",
                           strokeWidth: 2,
                           r: 4,
+                          stroke: "hsl(var(--background))",
                         }}
                         activeDot={{
                           r: 6,
-                          stroke: "hsl(var(--chart-2))",
+                          stroke: "hsl(210, 60%, 55%)",
                           strokeWidth: 2,
+                          fill: "hsl(var(--background))",
                         }}
+                        name="Response Time"
+                        filter="url(#shadow)"
                       />
-                    </LineChart>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </ChartContainer>
+              </div>{" "}
+              {/* Professional Legend */}
+              <div className="flex items-center justify-center space-x-8 p-3 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">
+                <div className="flex items-center space-x-3 px-3 py-2 bg-white rounded-md border border-blue-100">
+                  <div className="w-4 h-[3px] bg-blue-600 rounded-full"></div>
+                  <span className="text-sm font-medium text-slate-700">
+                    Response Time (s)
+                  </span>
+                </div>
+                <div className="flex items-center space-x-3 px-3 py-2 bg-white rounded-md border border-green-100">
+                  <div className="w-4 h-4 bg-green-600 rounded"></div>
+                  <span className="text-sm font-medium text-slate-700">
+                    Request Count
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-64 text-muted-foreground">
-              <div className="text-center space-y-2">
-                <Activity className="w-8 h-8 mx-auto opacity-50" />
-                <p>No request count data available</p>
-                <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <div className="flex items-center justify-center h-80 text-muted-foreground">
+              <div className="text-center space-y-3">
+                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center">
+                  <Activity className="w-8 h-8 text-primary/60" />
+                </div>
+                <div>
+                  <p className="font-medium">No Performance Data Available</p>
+                  <p className="text-sm text-muted-foreground/80 mt-1">
+                    Waiting for analytics data to load...
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  className="mt-3"
+                >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh Data
                 </Button>
               </div>
             </div>
-          )}{" "}
+          )}
         </CardContent>
       </Card>
-      {/* Database Management 
-      <DatabaseManagement />*/}
       <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent">
         Quick Actions
       </h1>

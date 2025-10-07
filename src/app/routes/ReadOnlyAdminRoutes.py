@@ -421,7 +421,8 @@ async def list_uploaded_files(
             dept_enum = validate_department(dept)
             query = query.filter(FileKnowledge.dept == dept_enum)
 
-        # Filter by admin        if admin:
+        # Filter by admin        
+        if admin:
             admin_uuid = parse_admin_id(admin, current_admin)
             query = query.filter(FileKnowledge.adminid == admin_uuid)
 

@@ -532,7 +532,7 @@ const Upload = () => {
       </Card>
 
       {/* Text Upload Section */}
-      <Card className="card-hover">
+      <Card className="card-hover" id="text-upload">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Plus className="w-5 h-5 text-accent" />
@@ -598,7 +598,7 @@ const Upload = () => {
       </Card>
 
       {/* Knowledge Store Section */}
-      <Card className="card-hover">
+      <Card className="card-hover" id="knowledge-store">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FolderOpen className="w-5 h-5 text-green-600" />
@@ -643,7 +643,7 @@ const Upload = () => {
                   onValueChange={setFileDeptFilter}
                 >
                   <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All Departments" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
