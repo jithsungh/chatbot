@@ -5,6 +5,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from src.models import DeptFailure, UserQuestion
 from src.config import Config
+from src.utils.SecurityAnonymizer import get_anonymizer
 
 class Pipeline:
     def __init__(self):
@@ -15,9 +16,11 @@ class Pipeline:
         self.promptGenerator = None
         self.llm_client = None
         self.response_formatter = None
-        
-        # Thread pool for async database operations
+          # Thread pool for async database operations
         self.db_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="db_ops")
+        
+        # Initialize security anonymizer
+        self.anonymizer = get_anonymizer()
         print("🔧 Pipeline created (components will be loaded lazily)")
 
         # Initialize components
@@ -146,9 +149,7 @@ class Pipeline:
             # 3) Get user history
             history = await self.history_manager.get_context(userid, k=5)
             last_context = await self.history_manager.get_last_context(userid)
-            last_followup = await self.history_manager.get_last_followup(userid)
-
-            # 4) Generate prompt and get LLM response
+            last_followup = await self.history_manager.get_last_followup(userid)            # 4) Generate prompt and get LLM response
             prompt = await self.promptGenerator.generate_prompt(
                 query=query, 
                 dept=dept,
@@ -158,12 +159,18 @@ class Pipeline:
                 last_followup=last_followup
             )
 
-            # print(f"📝 Generated Prompt:\n{prompt}\n")
+            # 🔒 Anonymize prompt before sending to LLM for security
+            anonymized_prompt = self.anonymizer.anonymize_prompt(prompt)
+            # print(f"📝 Generated Prompt:\n{anonymized_prompt}\n")
 
-            response = self.llm_client.get_response(prompt)
-            # print(f"💬 LLM Response: {response}")
-            # print("\n\n response type:", type(response), "\n\n")
-            parsed = self.response_formatter.to_json_object(response)
+            # Send anonymized prompt to LLM
+            response = self.llm_client.get_response(anonymized_prompt)
+            
+            # 🔓 Deanonymize response to restore original organization names
+            deanonymized_response = self.anonymizer.deanonymize_response(response)
+            # print(f"💬 LLM Response: {deanonymized_response}")
+            # print("\n\n response type:", type(deanonymized_response), "\n\n")
+            parsed = self.response_formatter.to_json_object(deanonymized_response)
 
             # 5) Update history (keep this synchronous as it's needed for conversation flow)
             await self.history_manager.update_context(

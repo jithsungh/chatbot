@@ -66,7 +66,7 @@ class Config:
 
     # Organization & Departments
     ORGANIZATION = os.getenv("ORGANIZATION", "Techmojo Solutions Pvt Ltd")
-    DUMMY_ORGANIZATION = ""
+    DUMMY_ORGANIZATION = "Panexus Solutions Pvt Ltd"
     DEPARTMENTS = [d.strip() for d in os.getenv("DEPARTMENTS", "HR,IT,Security").split(',')]
     ORGANIZATION_DOMAIN = os.getenv("ORGANIZATION_DOMAIN", "techmojo.in")
     BYPASS_KEY = os.getenv("BYPASS_KEY", "your_bypass_key")
