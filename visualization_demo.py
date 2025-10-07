@@ -28,7 +28,7 @@ async def demo_queries():
     # Test queries representing different scenarios
     test_queries = [
         {
-            "query": "What is the referral Bonus policy?",
+            "query": "How many leaves Can I carry Forward ?",
             "userid": "demo_user_001",
             "description": "HR Department Query with Context Expected"
         },
@@ -131,16 +131,6 @@ def print_final_demo_summary(pipeline):
     print(f"{Colors.OKGREEN}2. Review the component statistics to optimize performance{Colors.ENDC}")
     print(f"{Colors.OKGREEN}3. Use the visualization system for debugging and analysis{Colors.ENDC}")
     print(f"{Colors.OKGREEN}4. Customize the colors and output format as needed{Colors.ENDC}")
-    
-    print(f"\n{Colors.BOLD}📁 FILES CREATED:{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• src/inference/PipelineVisualizer.py - Core visualization system{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• src/inference/EnhancedPipeline.py - Enhanced pipeline with visualization{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• src/inference/EnhancedRouter.py - Enhanced router with detailed analysis{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• src/inference/EnhancedRetriever.py - Enhanced retriever with metrics{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• src/inference/EnhancedPromptGenerator.py - Enhanced prompt generator{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• src/utils/EnhancedLLMClient.py - Enhanced LLM client with analysis{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• src/utils/EnhancedResponseFormatter.py - Enhanced formatter{Colors.ENDC}")
-    print(f"{Colors.OKCYAN}• visualization_demo.py - This demonstration script{Colors.ENDC}")
 
 def print_intro():
     """Print introduction and setup information"""
